@@ -1,0 +1,1 @@
+{"1": {"id": "1", "recurrence": "giornaliero", "name": "Estate", "activation_time": "14:37", "steps": [{"zone_id": 0, "duration": 1}, {"zone_id": 1, "duration": 10}], "automatic_enabled": true, "months": ["Febbraio", "Marzo", "Aprile"]}}

@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modifica Programma Irrigazione</title>
+    <style>
+        .page-content-wrapper {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .modify-program-container {
+            /* Container specifico per la pagina */
+        }
+
+        h2#page-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--color-border);
+            color: var(--color-text-headings);
+            text-align: left;
+        }
+
+        .form-section {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 30px;
+            padding: 0;
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+        }
+
+        .form-section-header {
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--color-border);
+            background-color: var(--color-surface-alt);
+        }
+
+        .form-section-header h3 {
+            margin: 0 0 3px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--color-text-headings);
+        }
+
+        .form-section-header p {
+            margin: 0;
+            color: var(--color-text-secondary);
+            font-size: 13px;
+        }
+
+        .form-section-content {
+            padding: 22px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: 500;
+            color: var(--color-text-secondary);
+            font-size: 13px;
+        }
+
+        .input-control {
+            width: 100%;
+            padding: 9px 14px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            font-size: 14px;
+            color: var(--color-text-body);
+            background-color: var(--color-surface);
+            transition: all var(--transition-duration-fast);
+        }
+
+        .input-control:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: var(--shadow-focus);
+        }
+
+        .input-control:invalid {
+            border-color: var(--color-danger);
+        }
+
+        .months-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 8px;
+        }
+
+        .month-item {
+            background-color: var(--color-surface-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            padding: 9px 7px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition-duration-fast) var(--transition-easing);
+            font-size: 12.5px;
+            font-weight: 500;
+            color: var(--color-text-secondary);
+            user-select: none;
+        }
+
+        .month-item:hover {
+            background-color: var(--color-primary-light);
+            border-color: var(--color-primary);
+            color: var(--color-primary-dark);
+            transform: scale(1.03);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .month-item.selected {
+            background-color: var(--color-primary);
+            color: var(--color-text-on-primary);
+            border-color: var(--color-primary-dark);
+            box-shadow: var(--shadow-button);
+            font-weight: 600;
+            transform: scale(1.03);
+        }
+
+        .zone-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 18px;
+        }
+
+        .zone-item {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            padding: 15px;
+            transition: all var(--transition-duration-fast) var(--transition-easing);
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+        }
+
+        .zone-item:hover {
+            border-color: var(--color-primary);
+            box-shadow: var(--shadow-md);
+        }
+
+        .zone-item.selected {
+            background-color: var(--color-primary-light);
+            border-color: var(--color-primary);
+            box-shadow: inset 0 0 0 1.5px var(--color-primary), var(--shadow-md);
+        }
+
+        .zone-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .zone-checkbox {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--color-primary);
+            border: 1.5px solid var(--color-border-dark);
+            border-radius: var(--radius-xs);
+            background-color: var(--color-surface);
+            appearance: none;
+            -webkit-appearance: none;
+            display: inline-grid;
+            place-content: center;
+            transition: background-color var(--transition-duration-fast), border-color var(--transition-duration-fast);
+            flex-shrink: 0;
+        }
+
+        .zone-checkbox::before {
+            content: "";
+            width: 0.6em;
+            height: 0.6em;
+            transform: scale(0);
+            transition: 100ms transform ease-in-out;
+            box-shadow: inset 1em 1em var(--color-text-on-primary);
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+
+        .zone-checkbox:checked {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary-dark);
+        }
+
+        .zone-checkbox:checked::before {
+            transform: scale(1.1);
+        }
+
+        .zone-name {
+            font-weight: 500;
+            margin: 0;
+            color: var(--color-text-base);
+            font-size: 15px;
+        }
+
+        .zone-duration-control {
+            margin-top: 10px;
+        }
+
+        .zone-duration-control label {
+            font-size: 11.5px;
+            color: var(--color-text-muted);
+            margin-bottom: 4px;
+            font-weight: 400;
+        }
+
+        .zone-duration {
+            padding: 8px 10px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .zone-duration:disabled {
+            background-color: var(--color-surface-alt);
+            color: var(--color-text-muted);
+            cursor: not-allowed;
+            box-shadow: none;
+            border-color: var(--color-border);
+        }
+
+        #days-container {
+            margin-top: 12px;
+            padding: 15px;
+            background-color: var(--color-primary-light);
+            border-radius: var(--radius-base);
+            border-left: 3px solid var(--color-primary);
+            display: none;
+            animation: fadeInCustomDays 0.3s ease-out;
+        }
+
+        #days-container.visible {
+            display: block;
+        }
+
+        #days-container label {
+            color: var(--color-primary-dark);
+            font-weight: 500;
+            font-size: 12.5px;
+        }
+
+        #days-container .input-control {
+            margin-top: 6px;
+            border-color: rgba(var(--color-primary-rgb), 0.5);
+        }
+
+        @keyframes fadeInCustomDays {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .button {
+            padding: 10px 22px;
+            font-size: 14px;
+            border: none;
+            border-radius: var(--radius-base);
+            cursor: pointer;
+            transition: all var(--transition-duration-fast);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .button.primary {
+            background-color: var(--color-primary);
+            color: var(--color-text-on-primary);
+        }
+
+        .button.secondary {
+            background-color: var(--color-surface);
+            color: var(--color-primary);
+            border: 1px solid var(--color-primary);
+        }
+
+        .button.cancel-btn {
+            background-color: var(--color-surface-alt);
+            border-color: var(--color-border-dark);
+            color: var(--color-text-secondary);
+        }
+
+        .button.cancel-btn:hover {
+            background-color: var(--color-border);
+            color: var(--color-text-base);
+        }
+
+        .button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .button-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .loading-zones {
+            padding: 30px 20px;
+            text-align: center;
+            color: var(--color-text-muted);
+            font-size: 13px;
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 768px) {
+            .zone-list {
+                grid-template-columns: 1fr;
+            }
+            .form-section-header {
+                padding: 15px 20px;
+            }
+            .form-section-content {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .months-list {
+                grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+                gap: 6px;
+            }
+            .button-container {
+                flex-direction: column-reverse;
+                gap: 10px;
+            }
+            .button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-content-wrapper">
+        <div class="modify-program-container">
+            <h2 id="page-title">Modifica Programma</h2>
+            
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Informazioni Generali</h3>
+                </div>
+                <div class="form-section-content">
+                    <div class="input-group">
+                        <label for="program-name">Nome Programma:</label>
+                        <input type="text" id="program-name" class="input-control" maxlength="16" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="start-time">Orario di Partenza:</label>
+                        <input type="time" id="start-time" class="input-control" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="recurrence">Cadenza:</label>
+                        <select id="recurrence" class="input-control" onchange="toggleDaysSelection()">
+                            <option value="giornaliero">Giornaliero</option>
+                            <option value="giorni_alterni">Giorni Alterni</option>
+                            <option value="personalizzata">Personalizzata</option>
+                        </select>
+                    </div>
+                    <div id="days-container" style="display: none;">
+                        <label for="custom-days-interval">Intervallo di Giorni:</label>
+                        <input type="number" id="custom-days-interval" class="input-control" placeholder="Es: 3" min="1" max="365">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Mesi di Attivazione</h3>
+                    <p>Seleziona i mesi in cui il programma sarà attivo.</p>
+                </div>
+                <div class="form-section-content">
+                    <div id="months-list" class="months-list">
+                        <!-- Mesi generati da JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Zone da Attivare</h3>
+                    <p>Seleziona le zone e imposta la durata (minuti).</p>
+                </div>
+                <div class="form-section-content">
+                    <div id="zone-list" class="zone-list">
+                        <div class="loading-zones">Caricamento zone...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-container">
+                <button onclick="cancelEdit()" class="button secondary cancel-btn">Annulla</button>
+                <button onclick="saveProgram()" class="button primary save-btn">
+                    <svg class="button-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3M19,19H5V5H16.17L19,7.83V19M12,12A3,3 0 0,0 9,15A3,3 0 0,0 12,18A3,3 0 0,0 15,15A3,3 0 0,0 12,12M6,6H15V10H6V6Z"/>
+                    </svg>
+                    Salva Modifiche
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function initializeZoneItemClickModify() {
+            const zonesGrid = document.getElementById('zone-list');
+            if (zonesGrid) {
+                zonesGrid.addEventListener('click', function(event) {
+                    const zoneItem = event.target.closest('.zone-item');
+                    if (zoneItem && !event.target.matches('input, label:not(.zone-name)')) {
+                        const checkbox = zoneItem.querySelector('.zone-checkbox');
+                        if (checkbox) {
+                            checkbox.checked = !checkbox.checked;
+                            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Inizializzazione placeholder
+        function initializeModifyProgramPlaceholder() {
+            const monthsList = document.getElementById('months-list');
+            if (monthsList && monthsList.children.length === 0) {
+                monthsList.innerHTML = '<div class="loading-zones">Caricamento mesi...</div>';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeModifyProgramPlaceholder();
+            setTimeout(initializeZoneItemClickModify, 300);
+        });
+    </script>
+</body>
+</html>

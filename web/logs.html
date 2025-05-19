@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log di Sistema Avanzati</title>
+    <style>
+        .page-content-wrapper {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .page-title-container {
+            margin-bottom: 20px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .page-title-container h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--color-text-headings);
+            margin: 0;
+            letter-spacing: -0.4px;
+        }
+
+        .logs-card {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 25px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .logs-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-text-base);
+        }
+
+        .logs-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .button {
+            padding: 9px 18px;
+            border: 1px solid transparent;
+            border-radius: var(--radius-base);
+            background-color: var(--color-primary);
+            color: var(--color-text-on-primary);
+            cursor: pointer;
+            font-size: 13.5px;
+            font-weight: 500;
+            transition: all var(--transition-duration-fast);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .button.secondary {
+            background-color: var(--color-surface);
+            color: var(--color-primary);
+            border-color: var(--color-primary);
+            box-shadow: none;
+        }
+
+        .button.secondary:hover:not(:disabled) {
+            background-color: var(--color-primary-light);
+            border-color: var(--color-primary-dark);
+            color: var(--color-primary-dark);
+        }
+
+        .button.danger {
+            background-color: var(--color-danger);
+            border-color: var(--color-danger);
+            color: var(--color-text-on-danger);
+        }
+
+        .button.danger:hover:not(:disabled) {
+            background-color: var(--color-danger-dark);
+            border-color: var(--color-danger-dark);
+        }
+
+        .button-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .logs-table-container {
+            overflow-x: auto;
+            max-height: calc(100vh - 300px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .logs-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 650px;
+        }
+
+        .logs-table thead {
+            position: sticky;
+            top: 0;
+            background-color: var(--color-surface-alt);
+            color: var(--color-text-secondary);
+            z-index: 10;
+            box-shadow: inset 0 -2px 0 var(--color-border-dark);
+        }
+
+        .logs-table th {
+            padding: 12px 18px;
+            text-align: left;
+            font-weight: 500;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+
+        .logs-table td {
+            padding: 12px 18px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--color-border);
+            color: var(--color-text-secondary);
+            vertical-align: top;
+        }
+
+        .logs-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .logs-table tbody tr:hover {
+            background-color: var(--color-primary-light);
+        }
+
+        .logs-table td.log-message-cell {
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.45;
+        }
+
+        .logs-table td:first-child {
+            color: var(--color-text-base);
+            font-weight: 500;
+        }
+
+        .log-level {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            font-size: 10px;
+            text-align: center;
+            text-transform: uppercase;
+            border: 1px solid;
+            line-height: 1.3;
+        }
+
+        .log-level.info {
+            background-color: var(--color-primary-light);
+            color: var(--color-primary-dark);
+            border-color: var(--color-primary-dark);
+        }
+
+        .log-level.warning {
+            background-color: var(--color-warning-light);
+            color: var(--color-warning-dark);
+            border-color: var(--color-warning-dark);
+        }
+
+        .log-level.error {
+            background-color: var(--color-danger-light);
+            color: var(--color-danger-dark);
+            border-color: var(--color-danger-dark);
+        }
+
+        .empty-logs {
+            padding: 50px 20px;
+            text-align: center;
+            color: var(--color-text-muted);
+            font-size: 15px;
+        }
+
+        .logs-table .loading td {
+            padding: 50px 20px;
+            text-align: center;
+            color: var(--color-text-muted);
+            font-size: 15px;
+        }
+
+        .logs-table .loading td::before {
+            content: "";
+            display: block;
+            width: 28px;
+            height: 28px;
+            margin: 0 auto 15px auto;
+            border-radius: 50%;
+            border: 3px solid var(--color-border);
+            border-top-color: var(--color-primary);
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #confirm-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1050;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            opacity: 0;
+            transition: opacity var(--transition-speed-normal) ease;
+            visibility: hidden;
+        }
+
+        #confirm-overlay.active {
+            display: flex;
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .confirm-dialog {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            padding: 25px;
+            width: 100%;
+            max-width: 450px;
+            transform: translateY(15px) scale(0.98);
+            opacity: 0;
+            transition: transform var(--transition-speed-normal) var(--transition-easing),
+                        opacity var(--transition-speed-fast) ease;
+        }
+
+        #confirm-overlay.active .confirm-dialog {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+            transition-delay: 0.05s;
+        }
+
+        .confirm-dialog h3 {
+            margin: 0 0 12px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-danger-dark);
+        }
+
+        .confirm-dialog p {
+            margin-bottom: 25px;
+            color: var(--color-text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .confirm-dialog-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .logs-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+                padding: 15px 20px;
+            }
+            .logs-actions {
+                justify-content: stretch;
+            }
+            .logs-actions .button {
+                flex-grow: 1;
+            }
+            .logs-table th:nth-child(2),
+            .logs-table td:nth-child(2) {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logs-header {
+                padding: 15px;
+            }
+            .logs-header h3 {
+                font-size: 17px;
+            }
+            .logs-table th,
+            .logs-table td {
+                padding: 10px 12px;
+                font-size: 12px;
+            }
+            .log-level {
+                padding: 2px 8px;
+                font-size: 9px;
+            }
+            .confirm-dialog {
+                padding: 20px;
+            }
+            .confirm-dialog h3 {
+                font-size: 17px;
+            }
+            .confirm-dialog p {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-content-wrapper">
+        <div class="logs-page-container">
+            <div class="page-title-container">
+                <h1>Storico Eventi</h1>
+            </div>
+            <div class="logs-card">
+                <div class="logs-header">
+                    <h3>Registrazioni di Sistema</h3>
+                    <div class="logs-actions">
+                        <button id="refresh-logs-btn" class="button secondary" onclick="refreshLogs()">
+                            <svg class="button-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+                            </svg>
+                            Aggiorna
+                        </button>
+                        <button id="clear-logs-btn" class="button danger" onclick="confirmClearLogs()">
+                            <svg class="button-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+                            </svg>
+                            Cancella Log
+                        </button>
+                    </div>
+                </div>
+                <div class="logs-table-container">
+                    <table class="logs-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 22%;">Data</th>
+                                <th style="width: 13%;">Ora</th>
+                                <th style="width: 15%;">Livello</th>
+                                <th>Messaggio</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-tbody">
+                            <tr>
+                                <td colspan="4" class="loading">Caricamento log...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="confirm-overlay" class="overlay">
+        <div class="confirm-dialog">
+            <h3>Conferma Cancellazione Log</h3>
+            <p>Sei sicuro di voler cancellare tutti i log di sistema? Questa operazione è irreversibile.</p>
+            <div class="confirm-dialog-actions">
+                <button class="button secondary" onclick="closeConfirmDialog()">Annulla</button>
+                <button class="button danger" onclick="clearLogs()">Elimina Log</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Definisci namespace se non esiste
+        window.LogsPage = window.LogsPage || {
+            isLoadingLogs: false,
+            autoRefreshInterval: null,
+            abortController: null
+        };
+        
+        function initializeLogsPage() {
+            console.log("Inizializzazione pagina log");
+            
+            // Cleanup precedente se necessario
+            cleanupLogsPage();
+            
+            loadLogs();
+            startAutoRefresh();
+            
+            window.addEventListener('pagehide', cleanupLogsPage, { once: true });
+        }
+        
+        function startAutoRefresh() {
+            stopAutoRefresh();
+            window.LogsPage.autoRefreshInterval = setInterval(loadLogs, 30000);
+        }
+        
+        function stopAutoRefresh() {
+            if (window.LogsPage.autoRefreshInterval) {
+                clearInterval(window.LogsPage.autoRefreshInterval);
+                window.LogsPage.autoRefreshInterval = null;
+            }
+        }
+        
+        function cleanupLogsPage() {
+            stopAutoRefresh();
+            
+            // Cancella richieste pendenti
+            if (window.LogsPage.abortController) {
+                window.LogsPage.abortController.abort();
+                window.LogsPage.abortController = null;
+            }
+            
+            window.removeEventListener('pagehide', cleanupLogsPage);
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            if (document.querySelector('.logs-page-container')) {
+                initializeLogsPage();
+            }
+        });
+    </script>
+</body>
+</html>

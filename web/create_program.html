@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crea Nuovo Programma Irrigazione</title>
+    <style>
+        .page-content-wrapper {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .page-title-container h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--color-text-headings);
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .form-section {
+            background: linear-gradient(135deg, #FFFFFF, #F9FAFB);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+            margin-bottom: 32px;
+            padding: 0;
+            overflow: hidden;
+            border: 1px solid rgba(230,235,240,0.8);
+        }
+
+        .form-section-header {
+            padding: 24px 28px;
+            border-bottom: 1px solid rgba(230,235,240,0.6);
+            background: linear-gradient(to right, #F8F9FB, #FFFFFF);
+        }
+
+        .form-section-header h3 {
+            margin: 0 0 6px 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--color-text-headings);
+        }
+
+        .form-section-header p {
+            margin: 0;
+            color: var(--color-text-secondary);
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .form-section-content {
+            padding: 28px;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--color-text-headings);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-control {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #E5E7EB;
+            border-radius: 12px;
+            font-size: 15px;
+            color: var(--color-text-body);
+            background-color: white;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .input-control:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            background-color: #F9FAFB;
+            box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+        }
+
+        .input-control:invalid {
+            border-color: var(--color-danger);
+        }
+
+        select.input-control {
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236B7280'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 20px;
+            padding-right: 40px;
+            appearance: none;
+        }
+
+        /* Mesi */
+        .months-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 8px;
+        }
+
+        .month-item {
+            background-color: var(--color-surface-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            padding: 9px 7px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition-duration-fast) var(--transition-easing);
+            font-size: 12.5px;
+            font-weight: 500;
+            color: var(--color-text-secondary);
+            user-select: none;
+        }
+
+        .month-item:hover {
+            background-color: var(--color-primary-light);
+            border-color: var(--color-primary);
+            color: var(--color-primary-dark);
+            transform: scale(1.03);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .month-item.selected {
+            background-color: var(--color-primary);
+            color: var(--color-text-on-primary);
+            border-color: var(--color-primary-dark);
+            box-shadow: var(--shadow-button);
+            font-weight: 600;
+            transform: scale(1.03);
+        }
+
+        /* Zone moderne */
+        .zones-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .zone-item {
+            background: white;
+            border: 2px solid #E5E7EB;
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .zone-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .zone-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            border-color: var(--color-primary);
+        }
+
+        .zone-item:hover::before {
+            transform: translateX(0);
+        }
+
+        .zone-item.selected {
+            background: linear-gradient(135deg, #EFF6FF, #FFFFFF);
+            border-color: var(--color-primary);
+            box-shadow: 0 4px 16px rgba(var(--color-primary-rgb), 0.15);
+        }
+
+        .zone-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            cursor: pointer;
+        }
+
+        .zone-checkbox {
+            width: 22px;
+            height: 22px;
+            accent-color: var(--color-primary);
+            border: 2px solid #E5E7EB;
+            border-radius: 6px;
+            background-color: white;
+            appearance: none;
+            -webkit-appearance: none;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .zone-checkbox:checked {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        .zone-checkbox:checked::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 7px;
+            width: 6px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        .zone-name {
+            font-weight: 600;
+            margin: 0;
+            color: var(--color-text-headings);
+            font-size: 16px;
+            flex-grow: 1;
+            cursor: pointer;
+        }
+
+        .zone-duration-control {
+            background: #F8F9FA;
+            border-radius: 12px;
+            padding: 12px 16px;
+        }
+
+        .zone-duration-control label {
+            font-size: 12px;
+            color: var(--color-text-muted);
+            margin-bottom: 8px;
+            font-weight: 600;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .zone-duration {
+            padding: 10px 14px;
+            font-size: 16px;
+            text-align: center;
+            font-weight: 600;
+            background: white;
+            border: 2px solid #E5E7EB;
+            border-radius: 8px;
+            width: 100%;
+        }
+
+        .zone-duration:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+        }
+
+        .zone-duration:disabled {
+            background-color: #F3F4F6;
+            color: var(--color-text-muted);
+            cursor: not-allowed;
+            border-color: #E5E7EB;
+        }
+
+        /* Bottoni */
+        .button-container {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .button {
+            padding: 10px 22px;
+            font-size: 14px;
+            border: none;
+            border-radius: var(--radius-base);
+            cursor: pointer;
+            transition: all var(--transition-duration-fast);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .button.primary {
+            background-color: var(--color-primary);
+            color: var(--color-text-on-primary);
+        }
+
+        .button.secondary {
+            background-color: var(--color-surface);
+            color: var(--color-primary);
+            border: 1px solid var(--color-primary);
+        }
+
+        .button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .button-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Intervallo giorni personalizzato */
+        .custom-days {
+            margin-top: 12px;
+            padding: 15px;
+            background-color: var(--color-primary-light);
+            border-radius: var(--radius-base);
+            border-left: 3px solid var(--color-primary);
+            display: none;
+            animation: fadeInCustomDays 0.3s ease-out;
+        }
+
+        .custom-days.visible {
+            display: block;
+        }
+
+        @keyframes fadeInCustomDays {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loading-zones {
+            padding: 30px 20px;
+            text-align: center;
+            color: var(--color-text-muted);
+            font-size: 13px;
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 768px) {
+            .zones-grid {
+                grid-template-columns: 1fr;
+            }
+            .form-section-header {
+                padding: 15px 20px;
+            }
+            .form-section-content {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .months-grid {
+                grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+                gap: 6px;
+            }
+            .button-container {
+                flex-direction: column-reverse;
+                gap: 10px;
+            }
+            .button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-content-wrapper">
+        <div class="create-program-container">
+            <div class="page-title-container">
+                <h1>Nuovo Programma</h1>
+            </div>
+            
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Informazioni Generali</h3>
+                    <p>Definisci nome, orario e frequenza del programma.</p>
+                </div>
+                <div class="form-section-content">
+                    <div class="input-group">
+                        <label for="program-name">Nome Programma (max 16 caratteri)</label>
+                        <input type="text" id="program-name" class="input-control" maxlength="16" 
+                               placeholder="Es. Irrigazione Mattutina" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="activation-time">Orario di Attivazione</label>
+                        <input type="time" id="activation-time" class="input-control" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="recurrence">Frequenza</label>
+                        <select id="recurrence" class="input-control" onchange="toggleCustomDays()">
+                            <option value="giornaliero">Ogni Giorno</option>
+                            <option value="giorni_alterni">Giorni Alterni</option>
+                            <option value="personalizzata">Intervallo Personalizzato</option>
+                        </select>
+                        <div id="custom-days" class="custom-days">
+                            <label for="interval-days">Esegui ogni (giorni)</label>
+                            <input type="number" id="interval-days" class="input-control" 
+                                   min="1" max="30" value="3" placeholder="Es. 3">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Periodo di Attività</h3>
+                    <p>Seleziona i mesi in cui questo programma sarà operativo.</p>
+                </div>
+                <div class="form-section-content">
+                    <div id="months-grid" class="months-grid">
+                        <!-- Mesi generati da JS -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Zone e Durate</h3>
+                    <p>Scegli le zone e imposta la rispettiva durata di irrigazione.</p>
+                </div>
+                <div class="form-section-content">
+                    <div id="zones-grid" class="zones-grid">
+                        <div class="loading-zones">Caricamento zone...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="button-container">
+                <button class="button secondary" onclick="goBack()">Annulla</button>
+                <button id="save-button" class="button primary" onclick="saveProgram()">
+                    <svg class="button-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3M19,19H5V5H16.17L19,7.83V19M12,12A3,3 0 0,0 9,15A3,3 0 0,0 12,18A3,3 0 0,0 15,15A3,3 0 0,0 12,12M6,6H15V10H6V6Z"/>
+                    </svg>
+                    Salva Programma
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function initializeZoneItemClick() {
+            const zonesGrid = document.getElementById('zones-grid');
+            if (zonesGrid) {
+                zonesGrid.addEventListener('click', function(event) {
+                    const zoneItem = event.target.closest('.zone-item');
+                    if (zoneItem && !event.target.matches('input, label')) {
+                        const checkbox = zoneItem.querySelector('.zone-checkbox');
+                        if (checkbox) {
+                            checkbox.checked = !checkbox.checked;
+                            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Inizializzazione placeholder
+        function initializeCreateProgramPlaceholder() {
+            const monthsGrid = document.getElementById('months-grid');
+            if (monthsGrid && monthsGrid.children.length === 0) {
+                monthsGrid.innerHTML = '<div class="loading-zones">Caricamento mesi...</div>';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCreateProgramPlaceholder();
+            setTimeout(initializeZoneItemClick, 300);
+        });
+    </script>
+</body>
+</html>

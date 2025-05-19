@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Irrigazione</title>
+    <style>
+        .page-content-wrapper {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .page-title-container {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .page-title-container h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--color-text-headings);
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+            gap: 20px;
+        }
+
+        .dash-card {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 20px 22px;
+            display: flex;
+            flex-direction: column;
+            transition: all var(--transition-duration-normal) var(--transition-easing);
+            border: 1px solid var(--color-border);
+        }
+
+        .dash-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .dash-card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .dash-card-icon {
+            color: var(--color-primary);
+            margin-right: 12px;
+            background-color: var(--color-primary-light);
+            border-radius: var(--radius-base);
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .dash-card-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .dash-card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--color-text-headings);
+            margin: 0;
+        }
+
+        .dash-card-content .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0;
+            font-size: 13px;
+            border-bottom: 1px dashed var(--color-border);
+        }
+
+        .dash-card-content .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-item .label {
+            color: var(--color-text-muted);
+        }
+
+        .info-item .value {
+            color: var(--color-text-body);
+            font-weight: 500;
+            text-align: right;
+        }
+
+        .status-indicator {
+            padding: 3px 9px;
+            border-radius: var(--radius-full);
+            font-weight: 500;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .status-ok {
+            background-color: var(--color-success-light);
+            color: var(--color-success);
+        }
+
+        .status-active {
+            background-color: var(--color-primary-light);
+            color: var(--color-primary);
+        }
+
+        .status-inactive {
+            background-color: var(--color-surface-alt);
+            color: var(--color-text-muted);
+        }
+
+        .log-list {
+            list-style: none;
+            padding: 0;
+            margin: 5px 0 0 0;
+            max-height: 100px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+
+        .log-list li {
+            padding: 4px 0;
+            color: var(--color-text-secondary);
+            border-bottom: 1px dashed var(--color-border);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .log-list li:last-child {
+            border-bottom: none;
+        }
+
+        .log-list .log-time {
+            font-weight: 400;
+            color: var(--color-text-muted);
+            margin-right: 6px;
+            white-space: nowrap;
+        }
+
+        .log-list .log-event-text {
+            text-align: right;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .log-list .log-program {
+            font-weight: 500;
+            color: var(--color-primary);
+        }
+
+        .log-list .log-zone {
+            font-weight: 500;
+            color: var(--color-success);
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 15px 0;
+            font-style: italic;
+            color: var(--color-text-muted);
+            font-size: 12.5px;
+        }
+
+        #dashboard-stop-program-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        #dashboard-stop-program-section .button {
+            width: 100%;
+            padding: 8px 15px;
+            font-size: 13px;
+            border: none;
+            border-radius: var(--radius-base);
+            background-color: var(--color-danger);
+            color: var(--color-text-on-danger);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all var(--transition-duration-fast);
+        }
+
+        #dashboard-stop-program-section .button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .button-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .button.link-style {
+            background: none;
+            border: none;
+            color: var(--color-primary);
+            text-decoration: none;
+            cursor: pointer;
+            padding: 5px;
+            font-size: 13px;
+            transition: color var(--transition-duration-fast);
+        }
+
+        .button.link-style:hover {
+            color: var(--color-primary-dark);
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dash-card {
+                padding: 18px;
+            }
+            .dash-card-title {
+                font-size: 14px;
+            }
+            .dash-card-content .info-item {
+                font-size: 12.5px;
+                padding: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-content-wrapper">
+        <div class="dashboard-container">
+            <div class="page-title-container">
+                <h1>Dashboard</h1>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="dash-card">
+                    <div class="dash-card-header">
+                        <div class="dash-card-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,2L2,7L12,12L22,7L12,2M12,14.47L4.93,10.39L4,10.85V17L12,22L20,17V10.85L19.07,10.39L12,14.47Z"/>
+                            </svg>
+                        </div>
+                        <h2 class="dash-card-title">Stato Sistema</h2>
+                    </div>
+                    <div class="dash-card-content">
+                        <div class="info-item">
+                            <span class="label">Attività:</span>
+                            <span id="system-activity-status" class="status-indicator status-ok value">Operativo</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Programma:</span>
+                            <span id="dashboard-running-program" class="value">Nessuno</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Zona Attiva:</span>
+                            <span id="dashboard-active-zone" class="value">-</span>
+                        </div>
+                        <div id="dashboard-stop-program-section" style="display:none;">
+                            <button class="button danger" id="dashboard-stop-all-btn" onclick="stopAllPrograms();">
+                                <svg class="button-icon" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M17,15.59L15.59,17L12,13.41L8.41,17L7,15.59L10.59,12L7,8.41L8.41,7L12,10.59L15.59,7L17,8.41L13.41,12L17,15.59Z"/>
+                                </svg>
+                                Arresta Programma
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dash-card">
+                    <div class="dash-card-header">
+                        <div class="dash-card-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19,19H5V8H19M19,3H18V1H16V3H8V1H6V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M17,10H7V12H17V10Z"/>
+                            </svg>
+                        </div>
+                        <h2 class="dash-card-title">Prossimi Programmi</h2>
+                    </div>
+                    <div class="dash-card-content">
+                        <div id="next-programs-list">
+                            <p class="no-data" id="no-next-programs">Nessun programma imminente.</p>
+                        </div>
+                        <p style="margin-top:15px;">
+                            <button onclick="navigateToPrograms();" class="button link-style">
+                                Gestisci Programmi →
+                            </button>
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="dash-card">
+                    <div class="dash-card-header">
+                        <div class="dash-card-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,2A6,6 0 0,1 18,8C18,12 15,15 12,22C9,15 6,12 6,8A6,6 0 0,1 12,2M12,4A4,4 0 0,0 8,8C8,10 12,17 12,17C12,17 16,10 16,8A4,4 0 0,0 12,4Z"/>
+                            </svg>
+                        </div>
+                        <h2 class="dash-card-title">Ultime Zone Attivate</h2>
+                    </div>
+                    <div class="dash-card-content">
+                        <ul class="log-list" id="last-activated-zones">
+                            <p class="no-data" id="no-last-zones">Nessuna attivazione recente.</p>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="dash-card">
+                    <div class="dash-card-header">
+                        <div class="dash-card-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M13.5,8H12V13L16.28,15.54L17,14.33L13.5,12.25V8M13,3A9,9 0 0,0 4,12H1L4.89,15.89L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3Z"/>
+                            </svg>
+                        </div>
+                        <h2 class="dash-card-title">Storico Programmi</h2>
+                    </div>
+                    <div class="dash-card-content">
+                        <ul class="log-list" id="last-run-programs">
+                            <p class="no-data" id="no-last-programs">Nessun programma eseguito.</p>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function populateDashboardInfo() {
+            try {
+                const state = window.IrrigationStatus?.getLastState ? window.IrrigationStatus.getLastState() : null;
+                const progsData = window.programsData || {};
+                const userData = window.userData || {};
+                const logs = (typeof window.systemLogs !== 'undefined' && Array.isArray(window.systemLogs)) ? window.systemLogs : [];
+
+                const systemStatusEl = document.getElementById('system-activity-status');
+                const runningProgramEl = document.getElementById('dashboard-running-program');
+                const activeZoneEl = document.getElementById('dashboard-active-zone');
+                const stopProgramSection = document.getElementById('dashboard-stop-program-section');
+
+                if (state && state.program_running && state.current_program_id) {
+                    if(systemStatusEl) { 
+                        systemStatusEl.textContent = 'In Esecuzione'; 
+                        systemStatusEl.className = 'status-indicator status-active value';
+                    }
+                    if(runningProgramEl) {
+                        runningProgramEl.textContent = progsData[state.current_program_id]?.name || `ID: ${state.current_program_id}`;
+                    }
+                    if(activeZoneEl) {
+                        const zoneId = state.active_zone?.id;
+                        const zoneName = (userData.zones && typeof zoneId !== 'undefined' && userData.zones[zoneId]) ? 
+                                         userData.zones[zoneId].name : 
+                                         (state.active_zone ? `Zona ${zoneId + 1}`: '-');
+                        activeZoneEl.textContent = zoneName;
+                    }
+                    if(stopProgramSection) stopProgramSection.style.display = 'block';
+                } else {
+                    if(systemStatusEl) { 
+                        systemStatusEl.textContent = 'Operativo'; 
+                        systemStatusEl.className = 'status-indicator status-ok value';
+                    }
+                    if(runningProgramEl) runningProgramEl.textContent = 'Nessuno';
+                    if(activeZoneEl) activeZoneEl.textContent = '-';
+                    if(stopProgramSection) stopProgramSection.style.display = 'none';
+                }
+
+                const nextProgramsListEl = document.getElementById('next-programs-list');
+                const noNextProgramsEl = document.getElementById('no-next-programs');
+                if (nextProgramsListEl && noNextProgramsEl) {
+                    const currentContent = Array.from(nextProgramsListEl.querySelectorAll('.info-item'));
+                    currentContent.forEach(item => item.remove());
+
+                    let nextFound = 0;
+                    Object.values(progsData)
+                        .filter(p => p.automatic_enabled !== false)
+                        .sort((a,b) => (a.activation_time || '').localeCompare(b.activation_time || ''))
+                        .slice(0, 3)
+                        .forEach(prog => {
+                            const item = document.createElement('div');
+                            item.className = 'info-item';
+                            item.innerHTML = `<span class="label">${prog.name}</span><span class="value">${prog.activation_time || '--:--'}</span>`;
+                            nextProgramsListEl.appendChild(item);
+                            nextFound++;
+                        });
+                    noNextProgramsEl.style.display = nextFound === 0 ? 'block' : 'none';
+                }
+                
+                const lastZonesEl = document.getElementById('last-activated-zones');
+                const noLastZonesEl = document.getElementById('no-last-zones');
+                if (lastZonesEl && noLastZonesEl) {
+                    const currentContent = Array.from(lastZonesEl.querySelectorAll('li'));
+                    currentContent.forEach(item => item.remove());
+
+                    let zonesFound = 0;
+                    logs.filter(l => l.message && (l.message.toLowerCase().includes('zona attivata') || l.message.toLowerCase().includes('avvio manuale zona')))
+                        .sort((a,b) => ((b.date || '') + (b.time || '')).localeCompare((a.date || '') + (a.time || '')))
+                        .slice(0, 3)
+                        .forEach(log => {
+                            const li = document.createElement('li');
+                            const matchZone = log.message.match(/Zona ([\w\s]+?)(?:\s\(ID: \d+\))?\sattivata/i) || log.message.match(/Avvio manuale zona ([\w\s]+)/i);
+                            const matchDuration = log.message.match(/per (\d+)\sminuti/i);
+                            const zoneDisplay = matchZone ? `<span class="log-zone">${matchZone[1].trim()}</span>` : 'Zona sconosciuta';
+                            const durationDisplay = matchDuration ? ` (${matchDuration[1]} min)` : '';
+                            li.innerHTML = `<span class="log-time">${log.date || ''} ${(log.time || '').substring(0,5)}</span><span class="log-event-text">${zoneDisplay}${durationDisplay}</span>`;
+                            lastZonesEl.appendChild(li);
+                            zonesFound++;
+                        });
+                    noLastZonesEl.style.display = zonesFound === 0 ? 'block' : 'none';
+                }
+
+                const lastProgramsEl = document.getElementById('last-run-programs');
+                const noLastProgramsEl = document.getElementById('no-last-programs');
+                if (lastProgramsEl && noLastProgramsEl) {
+                    const currentContent = Array.from(lastProgramsEl.querySelectorAll('li'));
+                    currentContent.forEach(item => item.remove());
+                    
+                    let programsFound = 0;
+                    logs.filter(l => l.message && l.message.toLowerCase().includes('programma avviato'))
+                        .sort((a,b) => ((b.date || '') + (b.time || '')).localeCompare((a.date || '') + (a.time || '')))
+                        .slice(0, 3)
+                        .forEach(log => {
+                            const li = document.createElement('li');
+                            const progNameMatch = log.message.match(/Programma (.*?) avviato/i);
+                            const progDisplay = progNameMatch ? `<span class="log-program">${progNameMatch[1].trim()}</span>` : 'Programma sconosciuto';
+                            li.innerHTML = `<span class="log-time">${log.date || ''} ${(log.time || '').substring(0,5)}</span><span class="log-event-text">${progDisplay}</span>`;
+                            lastProgramsEl.appendChild(li);
+                            programsFound++;
+                        });
+                    noLastProgramsEl.style.display = programsFound === 0 ? 'block' : 'none';
+                }
+            } catch (error) {
+                console.error('Errore in populateDashboardInfo:', error);
+            }
+        }
+        
+        document.addEventListener('programStatusChanged', populateDashboardInfo);
+        document.addEventListener('initialDataLoaded', populateDashboardInfo);
+        document.addEventListener('logsUpdated', populateDashboardInfo);
+
+        function tryInitialPopulate() {
+            if (typeof window.IrrigationStatus !== 'undefined' && 
+                typeof window.IrrigationStatus.getLastState === 'function' &&
+                typeof window.programsData !== 'undefined' && 
+                typeof window.userData !== 'undefined') {
+                if (typeof window.systemLogs === 'undefined' || window.systemLogs.length === 0) {
+                    if (typeof window.loadLogs === 'function' && (typeof window.isLoadingLogs === 'undefined' || !window.isLoadingLogs)) {
+                        console.log("Dashboard: Log non pronti, tento caricamento...");
+                        window.loadLogs();
+                    } else {
+                        console.log("Dashboard: Log non pronti, loadLogs non disponibile o in corso.");
+                        populateDashboardInfo();
+                    }
+                } else {
+                    populateDashboardInfo();
+                }
+            } else {
+                setTimeout(tryInitialPopulate, 250);
+            }
+        }
+        
+        document.addEventListener('pageInitialized', function(e) {
+            if (e.detail.pageName === 'dashboard.html') {
+                tryInitialPopulate();
+            }
+        });
+
+        function navigateToPrograms() {
+            if (window.IrrigationRouter?.loadPage) {
+                window.IrrigationRouter.loadPage('view_programs.html');
+            } else if (typeof window.loadPage === 'function') {
+                window.loadPage('view_programs.html');
+            }
+        }
+        
+        function stopAllPrograms() {
+            if (window.IrrigationAPI?.stopProgram) {
+                window.IrrigationAPI.stopProgram();
+            } else if (typeof window.stopProgram === 'function') {
+                window.stopProgram();
+            }
+        }
+        
+        // Esposizione globale per compatibilità
+        window.populateDashboardInfo = populateDashboardInfo;
+        window.navigateToPrograms = navigateToPrograms;
+        window.stopAllPrograms = stopAllPrograms;
+    </script>
+</body>
+</html>

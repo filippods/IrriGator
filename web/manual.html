@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controllo Manuale Irrigazione</title>
+    <style>
+        .page-content-wrapper {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .page-title-container {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .page-title-container h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--color-text-headings);
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .zone-grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 28px;
+            padding: 10px;
+        }
+
+        .zone-card {
+            background: #FFFFFF;
+            border-radius: 20px;
+            box-shadow: var(--shadow-md);
+            padding: 28px 24px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: default;
+            border: 2px solid var(--color-border);
+        }
+
+        .zone-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--color-primary);
+        }
+
+        .zone-card.active {
+            background: #F0FDF4;
+            border-color: var(--color-success);
+        }
+        
+        .zone-card.disabled-mode {
+            opacity: 0.6;
+            pointer-events: none;
+            filter: grayscale(70%);
+        }
+        
+        .zone-card.loading-indicator::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 30px;
+            margin-left: -15px;
+            margin-top: -15px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .zone-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .zone-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--color-text-headings);
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .zone-id {
+            font-size: 12px;
+            color: var(--color-text-muted);
+            font-weight: 500;
+            background: var(--color-background-secondary);
+            padding: 6px 12px;
+            border-radius: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Duration Control */
+        .duration-control {
+            background: var(--color-background-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 1px solid var(--color-border);
+        }
+
+        .duration-label {
+            font-size: 11px;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: block;
+            text-align: center;
+        }
+
+        .duration-input-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .duration-stepper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .stepper-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: #FFFFFF;
+            color: var(--color-primary);
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-border);
+        }
+
+        .stepper-btn:hover:not(:disabled) {
+            background: var(--color-primary);
+            color: white;
+            transform: scale(1.05);
+            box-shadow: var(--shadow-md);
+            border-color: transparent;
+        }
+
+        .stepper-btn:active {
+            transform: scale(0.95);
+        }
+
+        .stepper-btn:disabled {
+            color: var(--color-text-disabled);
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: var(--color-background-secondary);
+        }
+
+        .duration-input {
+            width: 80px;
+            height: 48px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--color-text-headings);
+            background: white;
+            border: 2px solid var(--color-border);
+            border-radius: 12px;
+            padding: 8px 12px;
+            transition: all 0.2s ease;
+        }
+
+        .duration-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .duration-input::-webkit-inner-spin-button,
+        .duration-input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .duration-input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        .duration-unit {
+            font-size: 14px;
+            color: var(--color-text-muted);
+            font-weight: 500;
+            margin-left: -8px;
+        }
+
+        /* Circular Progress */
+        .progress-container {
+            position: relative;
+            margin-bottom: 24px;
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .progress-ring {
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-bg {
+            stroke: #E5E7EB;
+            stroke-width: 8;
+        }
+
+        .progress-ring-fill {
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .zone-card.active .progress-ring-fill {
+            filter: drop-shadow(0 0 8px rgba(16,185,129,0.4));
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .progress-time {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--color-text-headings);
+            display: block;
+            letter-spacing: -1px;
+        }
+
+        .progress-label {
+            font-size: 11px;
+            color: var(--color-text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-top: 4px;
+        }
+
+        /* Activation Button */
+        .activation-button {
+            width: 100%;
+            padding: 16px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .button-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .activation-button.activate {
+            background: var(--color-success);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .activation-button.activate:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            background: var(--color-success-dark);
+        }
+
+        .activation-button.deactivate {
+            background: var(--color-danger);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .activation-button.deactivate:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            background: var(--color-danger-dark);
+        }
+        
+        .activation-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .activation-button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        /* Empty State */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 80px 40px;
+            background: var(--color-background-secondary);
+            border-radius: 20px;
+            border: 2px dashed var(--color-border);
+        }
+
+        .empty-state-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            opacity: 0.5;
+        }
+
+        .empty-state-icon svg {
+            width: 100%;
+            height: 100%;
+            color: var(--color-primary);
+        }
+
+        .empty-state h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--color-text-headings);
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--color-text-muted);
+            margin-bottom: 24px;
+        }
+        
+        /* Manual page overlay */
+        .manual-page-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .overlay-message {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: var(--shadow-xl);
+            border-left: 5px solid var(--color-danger);
+        }
+        
+        .overlay-message h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--color-text-headings);
+            margin-bottom: 12px;
+        }
+        
+        .overlay-message p {
+            font-size: 15px;
+            color: var(--color-text-body);
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+        
+        .overlay-message strong {
+            color: var(--color-text-headings);
+            font-weight: 600;
+        }
+        
+        .stop-program-button {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--color-danger);
+            color: white;
+            padding: 14px 28px;
+            border-radius: 12px;
+            cursor: pointer;
+            z-index: 999;
+            display: none;
+            text-align: center;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            box-shadow: var(--shadow-lg);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            transition: all 0.2s ease;
+        }
+        
+        .stop-program-button:hover {
+            transform: translateX(-50%) translateY(-2px);
+            box-shadow: var(--shadow-xl);
+            background: var(--color-danger-dark);
+        }
+        
+        .stop-program-button.visible {
+            display: block;
+            animation: fadeInUp 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeInUp {
+            from { 
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .zone-grid-container {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+            
+            .zone-card {
+                padding: 24px 20px;
+            }
+            
+            .progress-time {
+                font-size: 32px;
+            }
+            
+            .duration-input {
+                font-size: 20px;
+                width: 70px;
+                height: 44px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .page-title-container h1 {
+                font-size: 24px;
+            }
+            
+            .zone-title {
+                font-size: 18px;
+            }
+            
+            .progress-time {
+                font-size: 28px;
+            }
+            
+            .progress-container {
+                height: 160px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-content-wrapper">
+        <div class="manual-page-container">
+            <div class="page-title-container">
+                <h1>Controllo Manuale</h1>
+            </div>
+        
+            <div class="zone-grid-container" id="zone-container">
+                <!-- Zone cards vengono generate dinamicamente da JS -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Namespace per stato locale
+        window.ManualPageState = window.ManualPageState || {
+            zoneStates: new Map()
+        };
+    </script>
+</body>
+</html>
