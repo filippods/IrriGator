@@ -316,7 +316,7 @@ window.IrrigationAPI = IrrigationAPI;
 const IrrigationRouter = {
     isLoadingPage: false,
 
-    async loadPage(pageName, callback) {
+    async loadPage(pageName, callback, isInitialLoad = false) {
         if (this.isLoadingPage) return;
         this.isLoadingPage = true;
         
@@ -327,6 +327,21 @@ const IrrigationRouter = {
         this.updateActiveMenuItem(pageName);
         window.IrrigationApp = window.IrrigationApp || {};
         window.IrrigationApp.currentPage = pageName;
+        
+        // Aggiorna URL e localStorage solo se non è il caricamento iniziale
+        // per evitare di alterare l'URL quando l'utente ha già navigato direttamente a una pagina
+        if (!isInitialLoad) {
+            // Aggiorna URL hash senza # iniziale per evitare il salto della pagina
+            const pageBase = pageName.replace('.html', '');
+            window.history.pushState(null, '', '#' + pageBase);
+            
+            // Salva in localStorage come backup
+            try {
+                localStorage.setItem('currentPage', pageName);
+            } catch (e) {
+                console.warn("Errore salvataggio pagina in localStorage:", e);
+            }
+        }
         
         const contentElement = document.getElementById('content');
         if (!contentElement) {

@@ -180,11 +180,9 @@ async function initializeApp() {
     await new Promise(resolve => setTimeout(resolve, 100));
     
     const contentElement = document.getElementById('content');
-    let pageToInitialize = window.IrrigationApp.currentPage;
-
-    if (!pageToInitialize) {
-        pageToInitialize = detectCurrentPage();
-    }
+    
+    // MODIFICA: Usa URL hash o localStorage per determinare la pagina iniziale
+    let pageToInitialize = getInitialPage();
     
     window.IrrigationApp.currentPage = pageToInitialize;
     console.log(`Pagina da inizializzare: ${pageToInitialize}`);
@@ -198,7 +196,7 @@ async function initializeApp() {
             (contentWrapper.childElementCount === 1 && contentWrapper.firstElementChild.classList.contains('loading-indicator'))) {
             
             console.log(`Router carica ${pageToInitialize} (DOM attuale: ${currentDOMPageType})`);
-            await router.loadPage(pageToInitialize);
+            await router.loadPage(pageToInitialize, null, true); // Passa true per indicare che è il caricamento iniziale
         } else {
             console.log(`Pagina ${pageToInitialize} già nel DOM. Solo inizializzazione.`);
             const moduleLoaded = await loadPageSpecificModule(pageToInitialize);
@@ -219,6 +217,28 @@ async function initializeApp() {
     
     setupNavigationListeners();
     console.log("IrrigationPRO Inizializzato.");
+}
+
+// Aggiungi questa nuova funzione per determinare la pagina iniziale
+function getInitialPage() {
+    // Prima, controlla il fragment dell'URL (#pagina)
+    const hashPage = window.location.hash.substring(1);
+    if (hashPage && PAGE_CONFIG[hashPage + '.html']) {
+        return hashPage + '.html';
+    }
+    
+    // Poi, controlla localStorage
+    try {
+        const storedPage = localStorage.getItem('currentPage');
+        if (storedPage && PAGE_CONFIG[storedPage]) {
+            return storedPage;
+        }
+    } catch (e) {
+        console.warn("Errore accesso a localStorage:", e);
+    }
+    
+    // Infine, usa la pagina corrente se rilevabile o il default
+    return window.IrrigationApp.currentPage || detectCurrentPage();
 }
 
 function initializeCurrentPage(pageName) {
