@@ -39,6 +39,7 @@
             flex-direction: column;
             transition: all var(--transition-duration-normal) var(--transition-easing);
             border: 1px solid var(--color-border);
+            position: relative;
         }
 
         .dash-card:hover {
@@ -125,12 +126,17 @@
             background-color: var(--color-surface-alt);
             color: var(--color-text-muted);
         }
+        
+        .status-warning {
+            background-color: var(--color-warning-light);
+            color: var(--color-warning);
+        }
 
         .log-list {
             list-style: none;
             padding: 0;
             margin: 5px 0 0 0;
-            max-height: 100px;
+            max-height: 160px;
             overflow-y: auto;
             font-size: 12px;
         }
@@ -226,7 +232,66 @@
             color: var(--color-primary-dark);
             text-decoration: underline;
         }
-
+        
+        .dash-card-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: var(--radius-lg);
+            z-index: 10;
+        }
+        
+        .dash-card-loading::after {
+            content: "";
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 3px solid rgba(var(--color-primary-rgb), 0.3);
+            border-top-color: var(--color-primary);
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .dash-refresh-button {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: none;
+            border: none;
+            color: var(--color-text-muted);
+            padding: 4px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .dash-refresh-button:hover {
+            color: var(--color-primary);
+            background-color: var(--color-primary-light);
+        }
+        
+        .dash-refresh-button svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .dash-refresh-button.loading svg {
+            animation: spin 1s linear infinite;
+        }
+        
         @media (max-width: 768px) {
             .dashboard-grid {
                 grid-template-columns: 1fr;
@@ -255,7 +320,13 @@
             </div>
 
             <div class="dashboard-grid">
-                <div class="dash-card">
+                <!-- Stato Sistema -->
+                <div class="dash-card" id="system-status-card">
+                    <button class="dash-refresh-button" id="refresh-system-status" onclick="refreshSystemStatus()">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+                        </svg>
+                    </button>
                     <div class="dash-card-header">
                         <div class="dash-card-icon">
                             <svg viewBox="0 0 24 24" fill="currentColor">
@@ -267,15 +338,15 @@
                     <div class="dash-card-content">
                         <div class="info-item">
                             <span class="label">Attività:</span>
-                            <span id="system-activity-status" class="status-indicator status-ok value">Operativo</span>
+                            <span id="system-activity-status" class="status-indicator status-ok value">Caricamento...</span>
                         </div>
                         <div class="info-item">
                             <span class="label">Programma:</span>
-                            <span id="dashboard-running-program" class="value">Nessuno</span>
+                            <span id="dashboard-running-program" class="value">Caricamento...</span>
                         </div>
                         <div class="info-item">
                             <span class="label">Zona Attiva:</span>
-                            <span id="dashboard-active-zone" class="value">-</span>
+                            <span id="dashboard-active-zone" class="value">Caricamento...</span>
                         </div>
                         <div id="dashboard-stop-program-section" style="display:none;">
                             <button class="button danger" id="dashboard-stop-all-btn" onclick="stopAllPrograms();">
@@ -288,7 +359,13 @@
                     </div>
                 </div>
 
-                <div class="dash-card">
+                <!-- Prossimi Programmi -->
+                <div class="dash-card" id="next-programs-card">
+                    <button class="dash-refresh-button" id="refresh-next-programs" onclick="refreshNextPrograms()">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+                        </svg>
+                    </button>
                     <div class="dash-card-header">
                         <div class="dash-card-icon">
                             <svg viewBox="0 0 24 24" fill="currentColor">
@@ -299,7 +376,7 @@
                     </div>
                     <div class="dash-card-content">
                         <div id="next-programs-list">
-                            <p class="no-data" id="no-next-programs">Nessun programma imminente.</p>
+                            <p class="no-data" id="no-next-programs">Caricamento programmi...</p>
                         </div>
                         <p style="margin-top:15px;">
                             <button onclick="navigateToPrograms();" class="button link-style">
@@ -309,7 +386,13 @@
                     </div>
                 </div>
                 
-                <div class="dash-card">
+                <!-- Ultime Zone Attivate -->
+                <div class="dash-card" id="last-zones-card">
+                    <button class="dash-refresh-button" id="refresh-last-zones" onclick="refreshLastZones()">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+                        </svg>
+                    </button>
                     <div class="dash-card-header">
                         <div class="dash-card-icon">
                             <svg viewBox="0 0 24 24" fill="currentColor">
@@ -320,12 +403,18 @@
                     </div>
                     <div class="dash-card-content">
                         <ul class="log-list" id="last-activated-zones">
-                            <p class="no-data" id="no-last-zones">Nessuna attivazione recente.</p>
+                            <p class="no-data" id="no-last-zones">Caricamento attività zone...</p>
                         </ul>
                     </div>
                 </div>
 
-                <div class="dash-card">
+                <!-- Storico Programmi -->
+                <div class="dash-card" id="program-history-card">
+                    <button class="dash-refresh-button" id="refresh-program-history" onclick="refreshProgramHistory()">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+                        </svg>
+                    </button>
                     <div class="dash-card-header">
                         <div class="dash-card-icon">
                             <svg viewBox="0 0 24 24" fill="currentColor">
@@ -336,7 +425,7 @@
                     </div>
                     <div class="dash-card-content">
                         <ul class="log-list" id="last-run-programs">
-                            <p class="no-data" id="no-last-programs">Nessun programma eseguito.</p>
+                            <p class="no-data" id="no-last-programs">Caricamento storico programmi...</p>
                         </ul>
                     </div>
                 </div>
@@ -345,164 +434,666 @@
     </div>
     
     <script>
-        function populateDashboardInfo() {
+        // Stato dashboard
+        window.DashboardState = {
+            isLoadingSystemStatus: false,
+            isLoadingNextPrograms: false,
+            isLoadingLastZones: false,
+            isLoadingProgramHistory: false,
+            refreshInterval: null,
+            programsData: null,
+            zonesData: null,
+            systemLogs: null,
+            systemStatus: null
+        };
+        
+        // ================ FUNZIONI PRINCIPALI ================
+        
+        // Inizializza la dashboard
+        function initializeDashboard() {
+            console.log("Inizializzazione dashboard...");
+            
+            // Primo caricamento dati
+            loadAllDashboardData();
+            
+            // Imposta aggiornamento automatico ogni 30 secondi
+            window.DashboardState.refreshInterval = setInterval(loadAllDashboardData, 30000);
+            
+            // Registra event listener per aggiornamenti
+            document.addEventListener('programStatusChanged', handleProgramStatusChanged);
+            document.addEventListener('initialDataLoaded', handleInitialDataLoaded);
+            document.addEventListener('logsUpdated', handleLogsUpdated);
+            
+            // Pulizia quando si cambia pagina
+            window.addEventListener('pagehide', cleanupDashboard);
+        }
+        
+        function cleanupDashboard() {
+            console.log("Pulizia dashboard...");
+            
+            // Rimuovi interval di aggiornamento
+            if (window.DashboardState.refreshInterval) {
+                clearInterval(window.DashboardState.refreshInterval);
+                window.DashboardState.refreshInterval = null;
+            }
+            
+            // Rimuovi event listener
+            document.removeEventListener('programStatusChanged', handleProgramStatusChanged);
+            document.removeEventListener('initialDataLoaded', handleInitialDataLoaded);
+            document.removeEventListener('logsUpdated', handleLogsUpdated);
+            window.removeEventListener('pagehide', cleanupDashboard);
+        }
+        
+        // Carica tutti i dati necessari per la dashboard
+        async function loadAllDashboardData() {
+            console.log("Caricamento dati dashboard...");
+            
+            // Carica dati in parallelo
+            await Promise.all([
+                loadSystemStatus(),
+                loadPrograms(),
+                loadZones(),
+                loadLogs()
+            ]);
+            
+            // Aggiorna UI
+            populateDashboardInfo();
+        }
+        
+        // Handler per gli eventi
+        function handleProgramStatusChanged(e) {
+            console.log("Evento: Stato programma cambiato");
+            if (e && e.detail) {
+                window.DashboardState.systemStatus = e.detail;
+            }
+            loadSystemStatus().then(() => populateDashboardInfo());
+        }
+        
+        function handleInitialDataLoaded() {
+            console.log("Evento: Dati iniziali caricati");
+            populateDashboardInfo();
+        }
+        
+        function handleLogsUpdated() {
+            console.log("Evento: Log aggiornati");
+            loadLogs().then(() => populateDashboardInfo());
+        }
+        
+        // ================ FUNZIONI DI CARICAMENTO DATI ================
+        
+        // Carica lo stato del sistema
+        async function loadSystemStatus() {
+            if (window.DashboardState.isLoadingSystemStatus) return;
+            
+            window.DashboardState.isLoadingSystemStatus = true;
+            showCardLoadingState('system-status-card', true);
+            
             try {
-                const state = window.IrrigationStatus?.getLastState ? window.IrrigationStatus.getLastState() : null;
-                const progsData = window.programsData || {};
-                const userData = window.userData || {};
-                const logs = (typeof window.systemLogs !== 'undefined' && Array.isArray(window.systemLogs)) ? window.systemLogs : [];
-
-                const systemStatusEl = document.getElementById('system-activity-status');
-                const runningProgramEl = document.getElementById('dashboard-running-program');
-                const activeZoneEl = document.getElementById('dashboard-active-zone');
-                const stopProgramSection = document.getElementById('dashboard-stop-program-section');
-
-                if (state && state.program_running && state.current_program_id) {
-                    if(systemStatusEl) { 
-                        systemStatusEl.textContent = 'In Esecuzione'; 
-                        systemStatusEl.className = 'status-indicator status-active value';
-                    }
-                    if(runningProgramEl) {
-                        runningProgramEl.textContent = progsData[state.current_program_id]?.name || `ID: ${state.current_program_id}`;
-                    }
-                    if(activeZoneEl) {
-                        const zoneId = state.active_zone?.id;
-                        const zoneName = (userData.zones && typeof zoneId !== 'undefined' && userData.zones[zoneId]) ? 
-                                         userData.zones[zoneId].name : 
-                                         (state.active_zone ? `Zona ${zoneId + 1}`: '-');
-                        activeZoneEl.textContent = zoneName;
-                    }
-                    if(stopProgramSection) stopProgramSection.style.display = 'block';
+                const api = window.IrrigationAPI;
+                const statusData = await (api && api.getProgramState 
+                    ? api.getProgramState() 
+                    : fetch('/get_program_state').then(res => res.json()));
+                
+                window.DashboardState.systemStatus = statusData;
+                console.log("Stato sistema caricato:", statusData);
+                
+                return statusData;
+            } catch (error) {
+                console.error("Errore caricamento stato sistema:", error);
+                showToastMessage("Errore caricamento stato sistema", "error");
+            } finally {
+                window.DashboardState.isLoadingSystemStatus = false;
+                showCardLoadingState('system-status-card', false);
+                showRefreshButtonLoading('refresh-system-status', false);
+            }
+        }
+        
+        // Carica i programmi
+        async function loadPrograms() {
+            if (window.DashboardState.isLoadingNextPrograms) return;
+            
+            window.DashboardState.isLoadingNextPrograms = true;
+            showCardLoadingState('next-programs-card', true);
+            
+            try {
+                const api = window.IrrigationAPI;
+                const programsData = await (api && api.loadPrograms 
+                    ? api.loadPrograms() 
+                    : fetch('/data/program.json').then(res => res.json()));
+                
+                window.DashboardState.programsData = programsData;
+                console.log("Programmi caricati:", programsData);
+                
+                return programsData;
+            } catch (error) {
+                console.error("Errore caricamento programmi:", error);
+                showToastMessage("Errore caricamento programmi", "error");
+            } finally {
+                window.DashboardState.isLoadingNextPrograms = false;
+                showCardLoadingState('next-programs-card', false);
+                showRefreshButtonLoading('refresh-next-programs', false);
+            }
+        }
+        
+        // Carica le zone
+        async function loadZones() {
+            try {
+                const api = window.IrrigationAPI;
+                const userData = await (api && api.loadUserSettings 
+                    ? api.loadUserSettings() 
+                    : fetch('/data/user_settings.json').then(res => res.json()));
+                
+                window.DashboardState.zonesData = userData.zones || [];
+                console.log("Zone caricate:", window.DashboardState.zonesData);
+                
+                return userData.zones || [];
+            } catch (error) {
+                console.error("Errore caricamento zone:", error);
+                showToastMessage("Errore caricamento zone", "error");
+            }
+        }
+        
+        // Carica i log
+        async function loadLogs() {
+            if (window.DashboardState.isLoadingLastZones || window.DashboardState.isLoadingProgramHistory) return;
+            
+            window.DashboardState.isLoadingLastZones = true;
+            window.DashboardState.isLoadingProgramHistory = true;
+            showCardLoadingState('last-zones-card', true);
+            showCardLoadingState('program-history-card', true);
+            
+            try {
+                const api = window.IrrigationAPI;
+                let logs;
+                
+                if (typeof window.loadLogs === 'function') {
+                    logs = await window.loadLogs(true);
                 } else {
-                    if(systemStatusEl) { 
-                        systemStatusEl.textContent = 'Operativo'; 
-                        systemStatusEl.className = 'status-indicator status-ok value';
-                    }
-                    if(runningProgramEl) runningProgramEl.textContent = 'Nessuno';
-                    if(activeZoneEl) activeZoneEl.textContent = '-';
-                    if(stopProgramSection) stopProgramSection.style.display = 'none';
-                }
-
-                const nextProgramsListEl = document.getElementById('next-programs-list');
-                const noNextProgramsEl = document.getElementById('no-next-programs');
-                if (nextProgramsListEl && noNextProgramsEl) {
-                    const currentContent = Array.from(nextProgramsListEl.querySelectorAll('.info-item'));
-                    currentContent.forEach(item => item.remove());
-
-                    let nextFound = 0;
-                    Object.values(progsData)
-                        .filter(p => p.automatic_enabled !== false)
-                        .sort((a,b) => (a.activation_time || '').localeCompare(b.activation_time || ''))
-                        .slice(0, 3)
-                        .forEach(prog => {
-                            const item = document.createElement('div');
-                            item.className = 'info-item';
-                            item.innerHTML = `<span class="label">${prog.name}</span><span class="value">${prog.activation_time || '--:--'}</span>`;
-                            nextProgramsListEl.appendChild(item);
-                            nextFound++;
-                        });
-                    noNextProgramsEl.style.display = nextFound === 0 ? 'block' : 'none';
+                    const response = await fetch('/data/system_log.json');
+                    logs = await response.json();
                 }
                 
-                const lastZonesEl = document.getElementById('last-activated-zones');
-                const noLastZonesEl = document.getElementById('no-last-zones');
-                if (lastZonesEl && noLastZonesEl) {
-                    const currentContent = Array.from(lastZonesEl.querySelectorAll('li'));
-                    currentContent.forEach(item => item.remove());
-
-                    let zonesFound = 0;
-                    logs.filter(l => l.message && (l.message.toLowerCase().includes('zona attivata') || l.message.toLowerCase().includes('avvio manuale zona')))
-                        .sort((a,b) => ((b.date || '') + (b.time || '')).localeCompare((a.date || '') + (a.time || '')))
-                        .slice(0, 3)
-                        .forEach(log => {
-                            const li = document.createElement('li');
-                            const matchZone = log.message.match(/Zona ([\w\s]+?)(?:\s\(ID: \d+\))?\sattivata/i) || log.message.match(/Avvio manuale zona ([\w\s]+)/i);
-                            const matchDuration = log.message.match(/per (\d+)\sminuti/i);
-                            const zoneDisplay = matchZone ? `<span class="log-zone">${matchZone[1].trim()}</span>` : 'Zona sconosciuta';
-                            const durationDisplay = matchDuration ? ` (${matchDuration[1]} min)` : '';
-                            li.innerHTML = `<span class="log-time">${log.date || ''} ${(log.time || '').substring(0,5)}</span><span class="log-event-text">${zoneDisplay}${durationDisplay}</span>`;
-                            lastZonesEl.appendChild(li);
-                            zonesFound++;
-                        });
-                    noLastZonesEl.style.display = zonesFound === 0 ? 'block' : 'none';
+                // Assicuriamo che i log siano un array
+                if (!Array.isArray(logs)) {
+                    logs = [];
                 }
-
-                const lastProgramsEl = document.getElementById('last-run-programs');
-                const noLastProgramsEl = document.getElementById('no-last-programs');
-                if (lastProgramsEl && noLastProgramsEl) {
-                    const currentContent = Array.from(lastProgramsEl.querySelectorAll('li'));
-                    currentContent.forEach(item => item.remove());
-                    
-                    let programsFound = 0;
-                    logs.filter(l => l.message && l.message.toLowerCase().includes('programma avviato'))
-                        .sort((a,b) => ((b.date || '') + (b.time || '')).localeCompare((a.date || '') + (a.time || '')))
-                        .slice(0, 3)
-                        .forEach(log => {
-                            const li = document.createElement('li');
-                            const progNameMatch = log.message.match(/Programma (.*?) avviato/i);
-                            const progDisplay = progNameMatch ? `<span class="log-program">${progNameMatch[1].trim()}</span>` : 'Programma sconosciuto';
-                            li.innerHTML = `<span class="log-time">${log.date || ''} ${(log.time || '').substring(0,5)}</span><span class="log-event-text">${progDisplay}</span>`;
-                            lastProgramsEl.appendChild(li);
-                            programsFound++;
-                        });
-                    noLastProgramsEl.style.display = programsFound === 0 ? 'block' : 'none';
-                }
+                
+                // Salva i log per uso futuro
+                window.DashboardState.systemLogs = logs;
+                window.systemLogs = logs; // Per compatibilità
+                
+                console.log(`Log caricati: ${logs.length} elementi`);
+                
+                return logs;
             } catch (error) {
-                console.error('Errore in populateDashboardInfo:', error);
+                console.error("Errore caricamento log:", error);
+                showToastMessage("Errore caricamento log", "error");
+            } finally {
+                window.DashboardState.isLoadingLastZones = false;
+                window.DashboardState.isLoadingProgramHistory = false;
+                showCardLoadingState('last-zones-card', false);
+                showCardLoadingState('program-history-card', false);
+                showRefreshButtonLoading('refresh-last-zones', false);
+                showRefreshButtonLoading('refresh-program-history', false);
             }
         }
         
-        document.addEventListener('programStatusChanged', populateDashboardInfo);
-        document.addEventListener('initialDataLoaded', populateDashboardInfo);
-        document.addEventListener('logsUpdated', populateDashboardInfo);
-
-        function tryInitialPopulate() {
-            if (typeof window.IrrigationStatus !== 'undefined' && 
-                typeof window.IrrigationStatus.getLastState === 'function' &&
-                typeof window.programsData !== 'undefined' && 
-                typeof window.userData !== 'undefined') {
-                if (typeof window.systemLogs === 'undefined' || window.systemLogs.length === 0) {
-                    if (typeof window.loadLogs === 'function' && (typeof window.isLoadingLogs === 'undefined' || !window.isLoadingLogs)) {
-                        console.log("Dashboard: Log non pronti, tento caricamento...");
-                        window.loadLogs();
-                    } else {
-                        console.log("Dashboard: Log non pronti, loadLogs non disponibile o in corso.");
-                        populateDashboardInfo();
-                    }
+        // ================ FUNZIONI DI AGGIORNAMENTO UI ================
+        
+        // Funzione principale per aggiornare tutti i componenti della dashboard
+        function populateDashboardInfo() {
+            // Aggiorna informazioni sullo stato del sistema
+            updateSystemStatusCard();
+            
+            // Aggiorna lista dei prossimi programmi
+            updateNextProgramsCard();
+            
+            // Aggiorna ultime zone attivate
+            updateLastZonesCard();
+            
+            // Aggiorna storico dei programmi
+            updateProgramHistoryCard();
+        }
+        
+        // Aggiorna card stato sistema
+        function updateSystemStatusCard() {
+            const state = window.DashboardState.systemStatus;
+            const programsData = window.DashboardState.programsData || {};
+            
+            // Elementi DOM
+            const statusEl = document.getElementById('system-activity-status');
+            const runningProgramEl = document.getElementById('dashboard-running-program');
+            const activeZoneEl = document.getElementById('dashboard-active-zone');
+            const stopProgramSection = document.getElementById('dashboard-stop-program-section');
+            
+            if (!statusEl || !runningProgramEl || !activeZoneEl || !stopProgramSection) {
+                console.warn("Elementi DOM mancanti per aggiornare lo stato del sistema");
+                return;
+            }
+            
+            if (state && state.program_running && state.current_program_id) {
+                // Stato: Programma in esecuzione
+                statusEl.textContent = 'In Esecuzione';
+                statusEl.className = 'status-indicator status-active value';
+                
+                // Nome programma
+                const program = programsData[state.current_program_id];
+                runningProgramEl.textContent = program?.name || `Programma ID: ${state.current_program_id}`;
+                
+                // Zona attiva
+                if (state.active_zone) {
+                    activeZoneEl.textContent = state.active_zone.name || `Zona ${state.active_zone.id + 1}`;
                 } else {
-                    populateDashboardInfo();
+                    activeZoneEl.textContent = 'Inizializzazione...';
                 }
+                
+                // Mostra pulsante stop
+                stopProgramSection.style.display = 'block';
             } else {
-                setTimeout(tryInitialPopulate, 250);
+                // Stato: Sistema inattivo
+                statusEl.textContent = 'Operativo';
+                statusEl.className = 'status-indicator status-ok value';
+                runningProgramEl.textContent = 'Nessuno';
+                activeZoneEl.textContent = '-';
+                stopProgramSection.style.display = 'none';
             }
         }
         
-        document.addEventListener('pageInitialized', function(e) {
-            if (e.detail.pageName === 'dashboard.html') {
-                tryInitialPopulate();
+        // Aggiorna card prossimi programmi
+        function updateNextProgramsCard() {
+            const programsData = window.DashboardState.programsData;
+            const nextProgramsListEl = document.getElementById('next-programs-list');
+            const noNextProgramsEl = document.getElementById('no-next-programs');
+            
+            if (!nextProgramsListEl || !noNextProgramsEl) {
+                console.warn("Elementi DOM mancanti per aggiornare i prossimi programmi");
+                return;
             }
-        });
-
+            
+            // Rimuovi elementi esistenti tranne il messaggio "nessun programma"
+            const currentItems = Array.from(nextProgramsListEl.querySelectorAll('.info-item'));
+            currentItems.forEach(item => item.remove());
+            
+            if (!programsData || Object.keys(programsData).length === 0) {
+                noNextProgramsEl.textContent = "Nessun programma configurato.";
+                noNextProgramsEl.style.display = 'block';
+                return;
+            }
+            
+            // Filtra e ordina i programmi
+            let nextPrograms = Object.values(programsData)
+                .filter(p => p.automatic_enabled !== false)
+                .sort((a, b) => (a.activation_time || '').localeCompare(b.activation_time || ''));
+            
+            if (nextPrograms.length === 0) {
+                noNextProgramsEl.textContent = "Nessun programma automatico attivo.";
+                noNextProgramsEl.style.display = 'block';
+                return;
+            }
+            
+            // Limita a max 3 programmi
+            nextPrograms = nextPrograms.slice(0, 3);
+            
+            // Mostra i programmi
+            noNextProgramsEl.style.display = 'none';
+            
+            nextPrograms.forEach(prog => {
+                const recurrence = formatRecurrence(prog.recurrence, prog.interval_days);
+                const lastRun = prog.last_run_date ? prog.last_run_date : 'Mai eseguito';
+                
+                const item = document.createElement('div');
+                item.className = 'info-item';
+                item.innerHTML = `
+                    <span class="label">${prog.name}</span>
+                    <span class="value">
+                        <span style="font-weight:600">${prog.activation_time || '--:--'}</span>
+                    </span>
+                `;
+                
+                nextProgramsListEl.appendChild(item);
+                
+                // Aggiungi informazioni aggiuntive
+                const infoItem = document.createElement('div');
+                infoItem.className = 'info-item';
+                infoItem.innerHTML = `
+                    <span class="label">Frequenza:</span>
+                    <span class="value">${recurrence}</span>
+                `;
+                nextProgramsListEl.appendChild(infoItem);
+                
+                // Aggiungi ultima esecuzione
+                const lastRunItem = document.createElement('div');
+                lastRunItem.className = 'info-item';
+                lastRunItem.innerHTML = `
+                    <span class="label">Ultima esecuzione:</span>
+                    <span class="value">${lastRun}</span>
+                `;
+                nextProgramsListEl.appendChild(lastRunItem);
+            });
+        }
+        
+        // Aggiorna card ultime zone attivate
+        function updateLastZonesCard() {
+            const logs = window.DashboardState.systemLogs || [];
+            const lastZonesEl = document.getElementById('last-activated-zones');
+            const noLastZonesEl = document.getElementById('no-last-zones');
+            
+            if (!lastZonesEl || !noLastZonesEl) {
+                console.warn("Elementi DOM mancanti per aggiornare le ultime zone attivate");
+                return;
+            }
+            
+            // Rimuovi elementi esistenti tranne il messaggio "nessuna zona"
+            const currentItems = Array.from(lastZonesEl.querySelectorAll('li'));
+            currentItems.forEach(item => item.remove());
+            
+            if (!logs || logs.length === 0) {
+                noLastZonesEl.textContent = "Nessun dato disponibile.";
+                noLastZonesEl.style.display = 'block';
+                return;
+            }
+            
+            // Cerca log relativi all'attivazione delle zone
+            // Modelli: "Zona X attivata per Y minuti", "Zona X avviata per Y minuti"
+            const zoneActivationLogs = logs.filter(log => {
+                if (!log.message) return false;
+                const msg = log.message.toLowerCase();
+                return (msg.includes('zona') && (msg.includes('attivata') || msg.includes('avviata')));
+            }).sort((a, b) => {
+                // Ordina per data/ora, dal più recente al più vecchio
+                const dateA = a.date ? a.date + (a.time || '') : '';
+                const dateB = b.date ? b.date + (b.time || '') : '';
+                return dateB.localeCompare(dateA);
+            }).slice(0, 5); // Limita a 5 attivazioni
+            
+            if (zoneActivationLogs.length === 0) {
+                noLastZonesEl.textContent = "Nessuna zona attivata di recente.";
+                noLastZonesEl.style.display = 'block';
+                return;
+            }
+            
+            // Mostra le attivazioni
+            noLastZonesEl.style.display = 'none';
+            
+            zoneActivationLogs.forEach(log => {
+                const li = document.createElement('li');
+                
+                // Estrai nome zona e durata
+                let zoneName = "Zona sconosciuta";
+                let duration = "";
+                
+                // Pattern per zona attivata/avviata
+                const zoneMatch = log.message.match(/[Zz]ona\s+([^\s]+(?:\s+[^\s]+)?)\s+(?:avviata|attivata)/);
+                const durationMatch = log.message.match(/per\s+(\d+)\s+minut[io]/);
+                
+                if (zoneMatch) {
+                    zoneName = zoneMatch[1];
+                }
+                
+                if (durationMatch) {
+                    duration = ` (${durationMatch[1]} min)`;
+                }
+                
+                // Formatta data/ora
+                const date = log.date || '';
+                const time = log.time ? log.time.substring(0, 5) : '';
+                
+                li.innerHTML = `
+                    <span class="log-time">${date} ${time}</span>
+                    <span class="log-event-text">
+                        <span class="log-zone">${zoneName}</span>${duration}
+                    </span>
+                `;
+                
+                lastZonesEl.appendChild(li);
+            });
+        }
+        
+        // Aggiorna card storico programmi
+        function updateProgramHistoryCard() {
+            const logs = window.DashboardState.systemLogs || [];
+            const lastProgramsEl = document.getElementById('last-run-programs');
+            const noLastProgramsEl = document.getElementById('no-last-programs');
+            
+            if (!lastProgramsEl || !noLastProgramsEl) {
+                console.warn("Elementi DOM mancanti per aggiornare lo storico dei programmi");
+                return;
+            }
+            
+            // Rimuovi elementi esistenti tranne il messaggio "nessun programma"
+            const currentItems = Array.from(lastProgramsEl.querySelectorAll('li'));
+            currentItems.forEach(item => item.remove());
+            
+            if (!logs || logs.length === 0) {
+                noLastProgramsEl.textContent = "Nessun dato disponibile.";
+                noLastProgramsEl.style.display = 'block';
+                return;
+            }
+            
+            // Cerca log relativi ai programmi
+            // Pattern possibili:
+            // - "Programma X avviato manualmente" 
+            // - "Programma X completato con successo"
+            // - "Nuovo programma X creato"
+            const programLogs = logs.filter(log => {
+                if (!log.message) return false;
+                const msg = log.message.toLowerCase();
+                return (
+                    (msg.includes('programma') && (
+                        msg.includes('avviato') || 
+                        msg.includes('completato') || 
+                        (msg.includes('creato') && msg.includes('nuovo'))
+                    ))
+                );
+            }).sort((a, b) => {
+                // Ordina per data/ora, dal più recente al più vecchio
+                const dateA = a.date ? a.date + (a.time || '') : '';
+                const dateB = b.date ? b.date + (b.time || '') : '';
+                return dateB.localeCompare(dateA);
+            }).slice(0, 5); // Limita a 5 programmi
+            
+            if (programLogs.length === 0) {
+                noLastProgramsEl.textContent = "Nessun programma eseguito di recente.";
+                noLastProgramsEl.style.display = 'block';
+                return;
+            }
+            
+            // Mostra i programmi
+            noLastProgramsEl.style.display = 'none';
+            
+            programLogs.forEach(log => {
+                const li = document.createElement('li');
+                
+                // Estrai nome programma e tipo di evento
+                const progNameMatch = log.message.match(/[Pp]rogramma\s+['"]?([^'"]+?)['"]?\s+(?:avviato|completato|creato)/);
+                let programName = progNameMatch ? progNameMatch[1] : "Programma";
+                
+                // Per i log di creazione, il formato potrebbe essere diverso
+                if (log.message.includes('Nuovo programma')) {
+                    const newProgMatch = log.message.match(/[Nn]uovo programma\s+['"]?([^'"]+?)['"]?\s+creato/);
+                    if (newProgMatch) {
+                        programName = newProgMatch[1];
+                    }
+                }
+                
+                // Formatta data/ora
+                const date = log.date || '';
+                const time = log.time ? log.time.substring(0, 5) : '';
+                
+                // Determina tipo di evento
+                let eventType = "";
+                if (log.message.toLowerCase().includes("avviato manualmente")) {
+                    eventType = " (avviato manualmente)";
+                } else if (log.message.toLowerCase().includes("completato")) {
+                    eventType = " (completato)";
+                } else if (log.message.toLowerCase().includes("creato")) {
+                    eventType = " (creato)";
+                }
+                
+                li.innerHTML = `
+                    <span class="log-time">${date} ${time}</span>
+                    <span class="log-event-text">
+                        <span class="log-program">${programName}</span>${eventType}
+                    </span>
+                `;
+                
+                lastProgramsEl.appendChild(li);
+            });
+        }
+        
+        // ================ FUNZIONI UTENTE ================
+        
+        // Arresta il programma in esecuzione
+        function stopAllPrograms() {
+            console.log("Arresto programma in corso...");
+            const api = window.IrrigationAPI;
+            
+            if (api && api.stopProgram) {
+                api.stopProgram();
+            } else if (typeof window.stopProgram === 'function') {
+                window.stopProgram();
+            } else {
+                // Fallback
+                fetch('/stop_program', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToastMessage("Programma arrestato con successo", "success");
+                        loadSystemStatus().then(() => populateDashboardInfo());
+                    } else {
+                        showToastMessage("Errore durante l'arresto del programma", "error");
+                    }
+                })
+                .catch(error => {
+                    console.error("Errore di rete durante l'arresto del programma", error);
+                    showToastMessage("Errore di rete durante l'arresto del programma", "error");
+                });
+            }
+        }
+        
+        // Naviga alla pagina programmi
         function navigateToPrograms() {
-            if (window.IrrigationRouter?.loadPage) {
-                window.IrrigationRouter.loadPage('view_programs.html');
+            const router = window.IrrigationRouter;
+            
+            if (router && router.loadPage) {
+                router.loadPage('view_programs.html');
             } else if (typeof window.loadPage === 'function') {
                 window.loadPage('view_programs.html');
             }
         }
         
-        function stopAllPrograms() {
-            if (window.IrrigationAPI?.stopProgram) {
-                window.IrrigationAPI.stopProgram();
-            } else if (typeof window.stopProgram === 'function') {
-                window.stopProgram();
+        // ================ FUNZIONI DI SUPPORTO ================
+        
+        // Formatta la ricorrenza in formato leggibile
+        function formatRecurrence(recurrence, interval_days) {
+            const utils = window.IrrigationUtils;
+            
+            if (utils && utils.formatRecurrence) {
+                return utils.formatRecurrence(recurrence, interval_days);
+            }
+            
+            // Fallback
+            const recurrenceMap = {
+                'giornaliero': 'Ogni giorno',
+                'giorni_alterni': 'Giorni alterni',
+                'personalizzata': `Ogni ${interval_days || 1} giorn${interval_days === 1 ? 'o' : 'i'}`
+            };
+            
+            return recurrenceMap[recurrence] || recurrence || 'Non impostata';
+        }
+        
+        // Mostra messaggio toast
+        function showToastMessage(message, type) {
+            const ui = window.IrrigationUI;
+            
+            if (ui && ui.showToast) {
+                ui.showToast(message, type);
+            } else if (typeof window.showToast === 'function') {
+                window.showToast(message, type);
             }
         }
         
-        // Esposizione globale per compatibilità
+        // Mostra/nasconde indicatore di caricamento per una card
+        function showCardLoadingState(cardId, isLoading) {
+            const card = document.getElementById(cardId);
+            if (!card) return;
+            
+            const existingLoader = card.querySelector('.dash-card-loading');
+            
+            if (isLoading && !existingLoader) {
+                const loader = document.createElement('div');
+                loader.className = 'dash-card-loading';
+                card.appendChild(loader);
+            } else if (!isLoading && existingLoader) {
+                existingLoader.remove();
+            }
+        }
+        
+        // Mostra/nasconde indicatore di caricamento per un pulsante di aggiornamento
+        function showRefreshButtonLoading(buttonId, isLoading) {
+            const button = document.getElementById(buttonId);
+            if (!button) return;
+            
+            button.classList.toggle('loading', isLoading);
+            button.disabled = isLoading;
+        }
+        
+        // ================ FUNZIONI DI AGGIORNAMENTO ================
+        
+        // Aggiorna lo stato del sistema
+        function refreshSystemStatus() {
+            showRefreshButtonLoading('refresh-system-status', true);
+            loadSystemStatus().then(() => populateDashboardInfo());
+        }
+        
+        // Aggiorna i prossimi programmi
+        function refreshNextPrograms() {
+            showRefreshButtonLoading('refresh-next-programs', true);
+            loadPrograms().then(() => populateDashboardInfo());
+        }
+        
+        // Aggiorna le ultime zone attivate
+        function refreshLastZones() {
+            showRefreshButtonLoading('refresh-last-zones', true);
+            loadLogs().then(() => populateDashboardInfo());
+        }
+        
+        // Aggiorna lo storico dei programmi
+        function refreshProgramHistory() {
+            showRefreshButtonLoading('refresh-program-history', true);
+            loadLogs().then(() => populateDashboardInfo());
+        }
+        
+        // ================ INIZIALIZZAZIONE ================
+        
+        // Avvia la dashboard quando il DOM è pronto
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+        });
+        
+        // Se la pagina è già caricata, avvia immediatamente
+        if (document.readyState === 'interactive' || document.readyState === 'complete') {
+            initializeDashboard();
+        }
+        
+        // Supporto per event bus di IrrigationPRO
+        document.addEventListener('pageInitialized', function(e) {
+            if (e.detail && e.detail.pageName === 'dashboard.html') {
+                initializeDashboard();
+            }
+        });
+        
+        // Esponi funzioni per compatibilità
         window.populateDashboardInfo = populateDashboardInfo;
         window.navigateToPrograms = navigateToPrograms;
         window.stopAllPrograms = stopAllPrograms;
+        window.refreshSystemStatus = refreshSystemStatus;
+        window.refreshNextPrograms = refreshNextPrograms;
+        window.refreshLastZones = refreshLastZones;
+        window.refreshProgramHistory = refreshProgramHistory;
     </script>
 </body>
 </html>
