@@ -32,14 +32,17 @@ function detectCurrentPage() {
     
     const pageContentWrapper = contentElement.querySelector('.page-content-wrapper');
     
+    // Se non c'è wrapper o è vuoto/solo loading, ritorna la pagina corrente o default
     if (!pageContentWrapper || pageContentWrapper.childElementCount === 0 ||
-        (pageContentWrapper.childElementCount === 1 && pageContentWrapper.firstElementChild.classList.contains('loading-indicator'))) {
+        (pageContentWrapper.childElementCount === 1 && 
+         pageContentWrapper.firstElementChild?.classList.contains('loading-indicator'))) {
         return window.IrrigationApp.currentPage || DEFAULT_PAGE;
     }
 
     // Rilevamento basato su elementi specifici
     const pageIdentifiers = {
         '.dashboard-grid': 'dashboard.html',
+        '#modern-dashboard-container': 'dashboard.html', // Aggiunto per dashboard React
         '.zone-grid-container': 'manual.html',
         '.logs-card .logs-table': 'logs.html',
         '.settings-card .wifi-mode-selector': 'settings.html',
@@ -53,6 +56,16 @@ function detectCurrentPage() {
     // Distinzione più precisa tra create e modify
     const programNameInput = pageContentWrapper.querySelector('#program-name');
     if (programNameInput) {
+        // Controlla se c'è un ID programma memorizzato per modify
+        try {
+            const editProgramId = localStorage.getItem('editProgramId');
+            if (editProgramId) {
+                return 'modify_program.html';
+            }
+        } catch (e) {
+            // Ignora errori localStorage
+        }
+        
         if (pageContentWrapper.querySelector('#months-list')) return 'modify_program.html';
         if (pageContentWrapper.querySelector('#months-grid')) return 'create_program.html';
     }
@@ -60,6 +73,7 @@ function detectCurrentPage() {
     console.warn("Tipo di pagina non identificato. Usando default:", DEFAULT_PAGE);
     return window.IrrigationApp.currentPage || DEFAULT_PAGE;
 }
+
 
 // ==================== GESTIONE MODULI ====================
 function loadModule(modulePath) {
@@ -159,13 +173,73 @@ async function initializeApp() {
     // Aggiungi gestione errori globale
     setupGlobalErrorHandling();
 
-    const coreModulesLoaded = await loadCoreModules();
-    if (!coreModulesLoaded) return;
+    // Carica core modules con retry
+    let coreModulesLoaded = false;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (!coreModulesLoaded && retryCount < maxRetries) {
+        coreModulesLoaded = await loadCoreModules();
+        if (!coreModulesLoaded) {
+            retryCount++;
+            console.warn(`Tentativo ${retryCount}/${maxRetries} di caricamento core modules...`);
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Attendi 1 secondo prima di riprovare
+        }
+    }
+    
+    if (!coreModulesLoaded) {
+        console.error("ERRORE CRITICO: Impossibile caricare i moduli core dopo " + maxRetries + " tentativi");
+        showCriticalError("Errore critico di sistema. Ricaricare la pagina.");
+        
+        // Mostra comunque la dashboard tradizionale se possibile
+        const contentElement = document.getElementById('content');
+        if (contentElement) {
+            contentElement.innerHTML = `
+                <div class="page-content-wrapper">
+                    <div style="text-align:center; padding:50px;">
+                        <h2>Errore di Caricamento</h2>
+                        <p>Impossibile caricare i moduli del sistema.</p>
+                        <button onclick="window.location.reload()" class="button primary" style="margin-top:20px;">
+                            Ricarica Pagina
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        return;
+    }
 
+    // Verifica che i moduli siano stati caricati correttamente
     const utils = window.IrrigationUtils;
     const ui = window.IrrigationUI;
     const router = window.IrrigationRouter;
     const statusModule = window.IrrigationStatus;
+
+    // Se i moduli critici non sono disponibili, usa fallback
+    if (!router || !router.loadPage) {
+        console.error("IrrigationRouter non disponibile anche dopo il caricamento dei moduli");
+        
+        // Prova a caricare direttamente la dashboard
+        const contentElement = document.getElementById('content');
+        if (contentElement) {
+            try {
+                const response = await fetch('dashboard.html');
+                if (response.ok) {
+                    const html = await response.text();
+                    contentElement.innerHTML = html;
+                    
+                    // Inizializza manualmente la dashboard se possibile
+                    if (typeof populateDashboardInfo === 'function') {
+                        populateDashboardInfo();
+                    }
+                }
+            } catch (error) {
+                console.error("Errore nel caricamento manuale della dashboard:", error);
+            }
+        }
+        
+        // Continua con l'inizializzazione base
+    }
 
     // Aggiorna data/ora
     const updateDateTimeFn = (utils && utils.updateDateTime) ? utils.updateDateTime : updateDateTime;
@@ -181,7 +255,7 @@ async function initializeApp() {
     
     const contentElement = document.getElementById('content');
     
-    // MODIFICA: Usa URL hash o localStorage per determinare la pagina iniziale
+    // Usa URL hash o localStorage per determinare la pagina iniziale
     let pageToInitialize = getInitialPage();
     
     window.IrrigationApp.currentPage = pageToInitialize;
@@ -196,7 +270,7 @@ async function initializeApp() {
             (contentWrapper.childElementCount === 1 && contentWrapper.firstElementChild.classList.contains('loading-indicator'))) {
             
             console.log(`Router carica ${pageToInitialize} (DOM attuale: ${currentDOMPageType})`);
-            await router.loadPage(pageToInitialize, null, true); // Passa true per indicare che è il caricamento iniziale
+            await router.loadPage(pageToInitialize, null, true);
         } else {
             console.log(`Pagina ${pageToInitialize} già nel DOM. Solo inizializzazione.`);
             const moduleLoaded = await loadPageSpecificModule(pageToInitialize);
@@ -205,18 +279,67 @@ async function initializeApp() {
             }
         }
     } else {
-        console.error("IrrigationRouter non definito.");
-        showCriticalError("Errore critico: Router non disponibile.");
+        console.warn("IrrigationRouter non definito, tentativo di inizializzazione diretta.");
+        
+        // Se siamo sulla dashboard, prova a inizializzarla direttamente
+        if (pageToInitialize === 'dashboard.html') {
+            const moduleLoaded = await loadPageSpecificModule('dashboard.html');
+            if (moduleLoaded) {
+                initializeCurrentPage('dashboard.html');
+            }
+        }
     }
     
     // Avvia polling dello stato
     const startPollingFn = (statusModule && statusModule.startProgramStatusPolling) 
         ? statusModule.startProgramStatusPolling 
         : startProgramStatusPolling;
-    startPollingFn();
+    
+    try {
+        startPollingFn();
+    } catch (error) {
+        console.warn("Errore nell'avvio del polling dello stato:", error);
+    }
     
     setupNavigationListeners();
     console.log("IrrigationPRO Inizializzato.");
+}
+
+async function emergencyLoadPage(pageName) {
+    console.warn("Caricamento di emergenza per:", pageName);
+    const contentElement = document.getElementById('content');
+    if (!contentElement) return;
+    
+    try {
+        const response = await fetch(pageName);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const html = await response.text();
+        contentElement.innerHTML = html;
+        
+        // Carica il modulo specifico se necessario
+        await loadPageSpecificModule(pageName);
+        
+        // Inizializza la pagina
+        initializeCurrentPage(pageName);
+        
+        // Aggiorna menu attivo
+        updateActiveMenuItem(pageName);
+        
+    } catch (error) {
+        console.error("Errore nel caricamento di emergenza:", error);
+        contentElement.innerHTML = `
+            <div class="page-content-wrapper">
+                <div style="text-align:center; padding:50px;">
+                    <h2>Errore di Caricamento</h2>
+                    <p>Impossibile caricare ${pageName}</p>
+                    <button onclick="window.location.reload()" class="button primary">
+                        Ricarica Pagina
+                    </button>
+                </div>
+            </div>
+        `;
+    }
 }
 
 // Aggiungi questa nuova funzione per determinare la pagina iniziale
@@ -281,19 +404,32 @@ function initializeCurrentPage(pageName) {
 }
 
 function setupNavigationListeners() {
-    // Rimuovi listener esistenti per evitare duplicati
-    document.querySelectorAll('.menu li[data-page]').forEach(item => {
-        // Rimuovi listener esistenti prima
-        item.replaceWith(item.cloneNode(true));
-    });
+    // Usa event delegation invece di rimuovere/riassegnare listener
+    const menu = document.querySelector('.menu');
+    if (!menu) return;
     
-    // Riassegna i listener dopo un piccolo delay per assicurarsi che il DOM sia aggiornato
-    setTimeout(() => {
-        document.querySelectorAll('.menu li[data-page]').forEach(item => {
-            item.addEventListener('click', handleMenuClick);
-        });
-    }, 10);
+    // Rimuovi vecchio listener se esiste
+    if (window.IrrigationApp._menuClickHandler) {
+        menu.removeEventListener('click', window.IrrigationApp._menuClickHandler);
+    }
     
+    // Nuovo handler con event delegation
+    window.IrrigationApp._menuClickHandler = function(event) {
+        const menuItem = event.target.closest('li[data-page]');
+        if (menuItem) {
+            event.preventDefault();
+            const targetPage = menuItem.getAttribute('data-page');
+            const router = window.IrrigationRouter;
+            
+            if (targetPage && router && router.loadPage) {
+                router.loadPage(targetPage);
+            }
+        }
+    };
+    
+    menu.addEventListener('click', window.IrrigationApp._menuClickHandler);
+    
+    // Stop handler globale
     document.removeEventListener('click', handleGlobalStopClick);
     document.addEventListener('click', handleGlobalStopClick);
 }
@@ -588,13 +724,55 @@ async function stopProgram() {
 
 // ==================== ESPOSIZIONE FUNZIONI GLOBALI PER COMPATIBILITÀ ====================
 window.loadPage = function(pageName, callback) {
+    console.log("window.loadPage chiamato per:", pageName);
+    
     const router = window.IrrigationRouter;
     if (router && router.loadPage) {
         router.loadPage(pageName, callback);
+    } else if (typeof window.emergencyLoadPage === 'function') {
+        console.warn("loadPage: Uso emergencyLoadPage per:", pageName);
+        window.emergencyLoadPage(pageName).then(() => {
+            if (callback) callback();
+        });
     } else {
-        console.error("loadPage: IrrigationRouter non disponibile per caricare:", pageName);
+        console.error("loadPage: Nessun metodo disponibile per caricare:", pageName);
+        
+        // Ultimo tentativo: caricamento diretto del contenuto
+        const contentElement = document.getElementById('content');
+        if (contentElement) {
+            contentElement.innerHTML = `
+                <div class="page-content-wrapper">
+                    <div class="loading-indicator">Caricamento ${pageName}...</div>
+                </div>
+            `;
+            
+            // Prova a caricare direttamente
+            fetch(pageName)
+                .then(response => response.text())
+                .then(html => {
+                    contentElement.innerHTML = html;
+                    if (callback) callback();
+                })
+                .catch(error => {
+                    console.error("Errore caricamento diretto:", error);
+                    contentElement.innerHTML = `
+                        <div class="page-content-wrapper">
+                            <div style="text-align:center; padding:50px;">
+                                <h2>Errore di Caricamento</h2>
+                                <p>Impossibile caricare ${pageName}</p>
+                                <button onclick="window.location.reload()" class="button primary">
+                                    Ricarica Pagina
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+        }
     }
 };
+
+// Aggiungi anche emergencyLoadPage all'oggetto window
+window.emergencyLoadPage = emergencyLoadPage;
 
 window.showToast = showToast;
 window.updateDateTime = updateDateTime;

@@ -701,48 +701,54 @@
             }
         });
         
-        function loadModernDashboard() {
-            console.log("Tentativo di caricamento dashboard moderna...");
-            
-            try {
-                const dashboardContainer = document.getElementById('modern-dashboard-container');
-                
-                if (typeof React !== 'undefined' && typeof ReactDOM !== 'undefined') {
-                    // If the Dashboard component is already loaded
-                    if (window.IrrigationDashboard) {
-                        console.log("Rendering React dashboard component...");
-                        ReactDOM.render(React.createElement(window.IrrigationDashboard), dashboardContainer);
-                    } else {
-                        // Try loading the dashboard component script
-                        const dashboardScript = document.createElement('script');
-                        dashboardScript.src = 'js/modules/dashboard-component.js';
-                        
-                        dashboardScript.onload = function() {
-                            console.log("Componente dashboard caricato, rendering...");
-                            if (window.IrrigationDashboard) {
-                                ReactDOM.render(React.createElement(window.IrrigationDashboard), dashboardContainer);
-                            } else {
-                                console.error("Componente IrrigationDashboard non trovato dopo il caricamento");
-                                showTraditionalDashboard();
-                            }
-                        };
-                        
-                        dashboardScript.onerror = function() {
-                            console.error("Errore caricamento dashboard-component.js");
-                            showTraditionalDashboard();
-                        };
-                        
-                        document.head.appendChild(dashboardScript);
-                    }
-                } else {
-                    console.warn("React o ReactDOM non disponibili");
-                    showTraditionalDashboard();
-                }
-            } catch (error) {
-                console.error("Errore rendering dashboard moderna:", error);
-                showTraditionalDashboard();
-            }
-        }
+		function loadModernDashboard() {
+			console.log("Tentativo di caricamento dashboard moderna...");
+			
+			try {
+				const dashboardContainer = document.getElementById('modern-dashboard-container');
+				
+				if (typeof React !== 'undefined' && typeof ReactDOM !== 'undefined') {
+					// Prima carica il componente se non è già caricato
+					const loadDashboardComponent = () => {
+						if (window.IrrigationDashboard) {
+							console.log("Rendering React dashboard component...");
+							ReactDOM.render(React.createElement(window.IrrigationDashboard), dashboardContainer);
+						} else {
+							console.error("Componente IrrigationDashboard non trovato");
+							showTraditionalDashboard();
+						}
+					};
+					
+					// Se il componente è già caricato, renderizza subito
+					if (window.IrrigationDashboard) {
+						loadDashboardComponent();
+					} else {
+						// Altrimenti carica lo script del componente
+						const dashboardScript = document.createElement('script');
+						dashboardScript.src = 'js/modules/dashboard-component.js';
+						
+						dashboardScript.onload = function() {
+							console.log("Componente dashboard caricato, rendering...");
+							// Aggiungi un piccolo delay per assicurarsi che il componente sia registrato
+							setTimeout(loadDashboardComponent, 100);
+						};
+						
+						dashboardScript.onerror = function() {
+							console.error("Errore caricamento dashboard-component.js");
+							showTraditionalDashboard();
+						};
+						
+						document.head.appendChild(dashboardScript);
+					}
+				} else {
+					console.warn("React o ReactDOM non disponibili");
+					showTraditionalDashboard();
+				}
+			} catch (error) {
+				console.error("Errore rendering dashboard moderna:", error);
+				showTraditionalDashboard();
+			}
+		}
         
         function showTraditionalDashboard() {
             console.log("Caricamento dashboard tradizionale...");

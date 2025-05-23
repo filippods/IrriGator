@@ -6,6 +6,7 @@ import ujson
 import uasyncio as asyncio
 import machine
 import gc
+import time
 from log_manager import log_event
 
 def json_response(data, status_code=200):
@@ -103,6 +104,7 @@ def get_server_stats(request):
     try:
         # Importiamo direttamente da web_server per avere accesso alle variabili globali
         from web_server import server_stats, server_health
+        import time  # Assicuriamoci che time sia importato
         
         # Aggiorna metriche memoria
         current_time = time.time()

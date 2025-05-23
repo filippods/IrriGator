@@ -183,7 +183,7 @@ app.route('/save_user_settings', methods=['POST'])(api_handler(save_user_setting
 
 @app.route('/', methods=['GET'])
 @api_handler
-def index(request):
+async def index(request):
     """Route per servire la pagina principale."""
     response_data = get_cached_file('/web/main.html')
     if response_data:
@@ -194,7 +194,7 @@ def index(request):
 
 @app.route('/<path:path>', methods=['GET'])
 @api_handler
-def static_files(request, path):
+async def static_files(request, path):
     """Route per servire i file statici."""
     # Evita accesso a directory data
     if path.startswith('data/'):

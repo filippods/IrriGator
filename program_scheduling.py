@@ -124,6 +124,9 @@ def is_program_due_today(program):
     return False
     
 async def check_programs():
+    """
+    Verifica se ci sono programmi da eseguire con gestione degli errori migliorata.
+    """
     try:
         # Verifica impostazioni
         settings = load_user_settings()
@@ -176,7 +179,7 @@ async def check_programs():
                 act_hour = int(parts[0])
                 act_minute = int(parts[1])
                 
-                # Verifica corrispondenza
+                # Verifica corrispondenza con tolleranza di 1 minuto
                 match = False
                 if hour == act_hour and minute == act_minute:
                     match = True
@@ -191,7 +194,7 @@ async def check_programs():
                     due = is_program_due_today(prog)
                     
                     if active and due:
-                        # Ricarica stato
+                        # Ricarica stato per sicurezza
                         load_program_state()
                         if program_running:
                             continue
@@ -209,7 +212,9 @@ async def check_programs():
                             await execute_program(prog)
                         except Exception as e:
                             log_event("Errore esecuzione: " + str(e), "ERROR")
-            except Exception:
+            except (ValueError, TypeError) as e:
+                log_event(f"Errore parsing orario per programma {pid}: {e}", "ERROR")
                 continue
+                
     except Exception as e:
         log_event("Errore check_programs: " + str(e), "ERROR")

@@ -803,6 +803,34 @@
         }
     </style>
 </head>
+<script>
+    // Polyfill critico per crypto.randomUUID - deve essere caricato per primo
+    (function() {
+        // Assicura che crypto esista
+        if (typeof window.crypto === 'undefined') {
+            window.crypto = {};
+        }
+        
+        // Polyfill per randomUUID
+        if (!window.crypto.randomUUID) {
+            window.crypto.randomUUID = function() {
+                // Usa crypto.getRandomValues se disponibile
+                if (typeof crypto.getRandomValues === 'function') {
+                    return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, function(c) {
+                        return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16);
+                    });
+                } else {
+                    // Fallback per browser molto vecchi
+                    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                        var r = Math.random() * 16 | 0;
+                        var v = c == 'x' ? r : (r & 0x3 | 0x8);
+                        return v.toString(16);
+                    });
+                }
+            };
+        }
+    })();
+</script>
 <body>
     <header class="status-bar">
         <div class="menu-icon" onclick="toggleMenu()" tabindex="0" role="button" aria-label="Apri menu" aria-expanded="false" aria-controls="menu">
@@ -958,7 +986,64 @@
                 window.stopProgram();
             }
         }
-        
+window.toggleMenu = function() {
+    const menu = document.getElementById('menu');
+    const menuOverlay = document.getElementById('menu-overlay');
+    const menuIcon = document.querySelector('.menu-icon');
+    
+    if (!menu) return;
+    
+    const isActive = menu.classList.toggle('active');
+    if (menuOverlay) menuOverlay.classList.toggle('active', isActive);
+    document.body.classList.toggle('menu-open', isActive);
+    if (menuIcon) menuIcon.setAttribute('aria-expanded', isActive.toString());
+}
+
+window.closeMenu = function() {
+    const menu = document.getElementById('menu');
+    const menuOverlay = document.getElementById('menu-overlay');
+    const menuIcon = document.querySelector('.menu-icon');
+    
+    if (menu && menu.classList.contains('active')) {
+        menu.classList.remove('active');
+        if (menuOverlay) menuOverlay.classList.remove('active');
+        document.body.classList.remove('menu-open');
+        if (menuIcon) menuIcon.setAttribute('aria-expanded', 'false');
+    }
+}
+
+window.stopProgram = function() {
+    console.log("stopProgram chiamato da main.html");
+    
+    // Prova diversi metodi in ordine di preferenza
+    if (window.IrrigationAPI && window.IrrigationAPI.stopProgram) {
+        window.IrrigationAPI.stopProgram();
+    } else if (typeof window.stopProgramFallback === 'function') {
+        window.stopProgramFallback();
+    } else {
+        // Fallback diretto
+        console.warn("Uso fallback diretto per stopProgram");
+        fetch('/stop_program', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log("Programma arrestato con successo");
+                // Prova a mostrare un toast se disponibile
+                if (window.IrrigationUI && window.IrrigationUI.showToast) {
+                    window.IrrigationUI.showToast("Programma arrestato", "success");
+                } else if (typeof window.showToast === 'function') {
+                    window.showToast("Programma arrestato", "success");
+                }
+            }
+        })
+        .catch(error => {
+            console.error("Errore arresto programma:", error);
+        });
+    }
+}        
         
 		document.addEventListener('DOMContentLoaded', function() {
 			const contentWrapper = document.getElementById('content')?.querySelector('.page-content-wrapper');
@@ -975,27 +1060,61 @@
 					const targetPage = this.getAttribute('data-page');
 					closeMenu(); // Chiudi il menu
 					
-					// Usa il router se disponibile, altrimenti fallback
-					if (window.IrrigationRouter && window.IrrigationRouter.loadPage) {
-						window.IrrigationRouter.loadPage(targetPage);
-					} else if (typeof window.loadPage === 'function') {
-						window.loadPage(targetPage);
+					// Funzione per caricare la pagina
+					const loadPageFn = function(page) {
+						// Prova prima con IrrigationRouter
+						if (window.IrrigationRouter && window.IrrigationRouter.loadPage) {
+							window.IrrigationRouter.loadPage(page);
+						} else if (typeof window.loadPage === 'function') {
+							window.loadPage(page);
+						} else if (typeof window.emergencyLoadPage === 'function') {
+							// Usa il caricamento di emergenza se disponibile
+							window.emergencyLoadPage(page);
+						} else {
+							console.error('Nessun metodo disponibile per caricare:', page);
+							// Ultimo tentativo: ricarica la pagina con hash
+							window.location.hash = page.replace('.html', '');
+							window.location.reload();
+						}
+					};
+					
+					// Se il router non è ancora caricato, attendi un po' e riprova
+					if (!window.IrrigationRouter) {
+						console.log("Router non ancora disponibile, attendo...");
+						setTimeout(() => loadPageFn(targetPage), 500);
 					} else {
-						console.error('Router non disponibile per caricare:', targetPage);
+						loadPageFn(targetPage);
 					}
 				});
 			});
 			
-			// Caricamento pagina di default
-			if (typeof IrrigationRouter !== 'undefined' && IrrigationRouter.loadPage) {
+			// Caricamento pagina di default - con gestione errori migliorata
+			const checkAndLoadDefault = function() {
 				if (contentWrapper && (contentWrapper.innerHTML.trim() === '' || contentWrapper.firstElementChild?.classList.contains('loading-indicator'))) {
-					console.log("Script in main.html: Caricamento pagina di default: dashboard.html");
-					window.currentPage = 'dashboard.html';
-					IrrigationRouter.loadPage('dashboard.html');
+					console.log("Script in main.html: Tentativo caricamento pagina di default");
+					
+					// Se IrrigationRouter è disponibile, usalo
+					if (window.IrrigationRouter && window.IrrigationRouter.loadPage) {
+						console.log("Script in main.html: Router disponibile, caricamento dashboard.html");
+						window.currentPage = 'dashboard.html';
+						window.IrrigationRouter.loadPage('dashboard.html');
+					} else {
+						console.log("Script in main.html: Router non ancora disponibile, attendo scripts.js");
+						// Non fare nulla qui, lascia che scripts.js gestisca l'inizializzazione
+					}
 				}
-			} else {
-				console.warn("Script in main.html: IrrigationRouter non ancora definito.");
-			}
+			};
+			
+			// Controlla subito
+			checkAndLoadDefault();
+			
+			// Se dopo 2 secondi non è successo nulla, riprova
+			setTimeout(function() {
+				if (contentWrapper && contentWrapper.firstElementChild?.classList.contains('loading-indicator')) {
+					console.warn("Script in main.html: Ancora in caricamento dopo 2 secondi");
+					checkAndLoadDefault();
+				}
+			}, 2000);
 		});
     </script>
 </body>

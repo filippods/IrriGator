@@ -72,6 +72,7 @@ async def execute_program(program, manual=False):
 
     # Ottieni l'ID del programma
     program_id = str(program.get('id', '0'))
+    program_name = program.get('name', 'Senza nome')
     
     # FASE 1: Imposta lo stato del programma
     program_running = True

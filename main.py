@@ -152,13 +152,18 @@ async def main():
         # FASE 2: Ottimizzazione delle risorse
         # Disattiva funzionalità non necessarie per risparmiare memoria
         try:
-            # Disattiva Bluetooth se disponibile
-            import bluetooth
-            bt = bluetooth.BLE()
-            bt.active(False)
-            log_event("Bluetooth disattivato per risparmiare risorse", "INFO")
-        except ImportError:
-            pass  # Bluetooth non disponibile, nessuna azione necessaria
+            # Prova a importare e disattivare Bluetooth se disponibile
+            try:
+                import bluetooth
+                bt = bluetooth.BLE()
+                bt.active(False)
+                log_event("Bluetooth disattivato per risparmiare risorse", "INFO")
+            except (ImportError, AttributeError, OSError) as e:
+                # Bluetooth non disponibile o errore, continua senza problemi
+                pass
+        except Exception as e:
+            # Gestisci qualsiasi altro errore inaspettato
+            log_event(f"Errore durante disattivazione Bluetooth: {e}", "DEBUG")
         
         # Pulizia iniziale della memoria
         gc_collect()
@@ -266,10 +271,15 @@ def start():
         # Ottimizzazione della CPU per prestazioni migliori
         try:
             import machine
-            # Imposta frequenza CPU a 240MHz su ESP32
-            machine.freq(240000000)
-            print(f"CPU impostata a {machine.freq()/1000000} MHz")
-        except:
+            # Imposta frequenza CPU a 240MHz su ESP32 (se supportato)
+            try:
+                machine.freq(240000000)
+                print(f"CPU impostata a {machine.freq()/1000000} MHz")
+            except (AttributeError, ValueError) as e:
+                # Frequenza CPU non modificabile su questa piattaforma
+                print("Impostazione frequenza CPU non supportata su questa piattaforma")
+        except Exception as e:
+            # Ignora errori di configurazione CPU
             pass
         
         # Avvia il loop principale con gestione eccezioni

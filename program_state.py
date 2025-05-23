@@ -143,6 +143,7 @@ def load_program_state():
                     log_event(f"Stato programma aggiornato: running={program_running}, id={current_program_id}", "INFO")
                     
                 # Aggiorna la cache dello stato salvato
+                global _last_saved_state
                 _last_saved_state = {
                     'program_running': program_running,
                     'current_program_id': current_program_id

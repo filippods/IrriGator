@@ -12,18 +12,17 @@ window.IrrigationCore = window.IrrigationCore || {
 
 // ==================== UTILS.JS ====================
 // Polyfill per crypto.randomUUID
-if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
+if (typeof crypto === 'undefined') {
+    window.crypto = {};
+}
+
+if (!crypto.randomUUID) {
     crypto.randomUUID = function() {
-        if (typeof crypto.getRandomValues === 'function') {
-            return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-                (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-            );
-        } else {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        }
+        // Fallback per browser che non supportano crypto.getRandomValues
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
     };
 }
 
@@ -181,15 +180,19 @@ window.IrrigationUI = IrrigationUI;
 
 // ==================== API.JS ====================
 const IrrigationAPI = {
-    async apiCall(endpoint, method = 'GET', data = null, retryCount = 0, maxRetries = 2) {
+    // Definisci apiCall come metodo dell'oggetto, non come async function separata
+    apiCall: async function(endpoint, method = 'GET', data = null, retryCount = 0, maxRetries = 2) {
         const cacheKey = method === 'GET' ? endpoint : null;
         
         // Check cache for GET requests
         if (cacheKey && window.IrrigationCore.apiCache.has(cacheKey)) {
             const cached = window.IrrigationCore.apiCache.get(cacheKey);
-            if (Date.now() - cached.timestamp < window.IrrigationCore.API_CACHE_TTL) {
+            if (cached && cached.timestamp && (Date.now() - cached.timestamp < window.IrrigationCore.API_CACHE_TTL)) {
                 console.log(`Usando cache per ${endpoint}`);
                 return cached.data;
+            } else {
+                // Rimuovi entry scaduta
+                window.IrrigationCore.apiCache.delete(cacheKey);
             }
         }
         
@@ -208,12 +211,18 @@ const IrrigationAPI = {
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const result = await response.json();
             
-            // Cache GET requests
-            if (cacheKey) {
+            // Cache GET requests solo se la risposta è valida
+            if (cacheKey && result !== null && result !== undefined) {
                 window.IrrigationCore.apiCache.set(cacheKey, {
                     data: result,
                     timestamp: Date.now()
                 });
+                
+                // Limita dimensione cache a 50 entries
+                if (window.IrrigationCore.apiCache.size > 50) {
+                    const firstKey = window.IrrigationCore.apiCache.keys().next().value;
+                    window.IrrigationCore.apiCache.delete(firstKey);
+                }
             }
             
             return result;
@@ -232,7 +241,7 @@ const IrrigationAPI = {
         }
     },
 
-    async loadUserSettings() {
+    loadUserSettings: async function() {
         try {
             return await this.apiCall('/data/user_settings.json');
         } catch (error) {
@@ -242,7 +251,7 @@ const IrrigationAPI = {
         }
     },
 
-    async loadPrograms() {
+    loadPrograms: async function() {
         try {
             return await this.apiCall('/data/program.json');
         } catch (error) {
@@ -252,7 +261,7 @@ const IrrigationAPI = {
         }
     },
 
-    async getProgramState() {
+    getProgramState: async function() {
         try {
             return await this.apiCall('/get_program_state');
         } catch (error) {
@@ -261,7 +270,7 @@ const IrrigationAPI = {
         }
     },
 
-    async startProgram(programId) {
+    startProgram: async function(programId) {
         try {
             const result = await this.apiCall('/start_program', 'POST', { program_id: programId });
             if (result.success) {
@@ -277,7 +286,7 @@ const IrrigationAPI = {
         }
     },
 
-    async stopProgram() {
+    stopProgram: async function() {
         IrrigationUI.showToast('Arresto del programma in corso...', 'info');
         
         const stopButtons = document.querySelectorAll('.banner-stop-btn, .global-stop-btn, .stop-program-button');
