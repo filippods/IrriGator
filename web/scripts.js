@@ -1,5 +1,5 @@
 // scripts.js - Script principale dell'applicazione
-// Corretto per migliore gestione errori e robustezza
+// Versione corretta con gestione errori migliorata
 
 // ==================== VARIABILI GLOBALI ====================
 // Usa namespace per evitare conflitti globali
@@ -10,7 +10,8 @@ window.IrrigationApp = window.IrrigationApp || {
     currentPage: null,
     modulesLoaded: {},
     systemLogs: [],
-    abortControllers: new Map() // Per gestire richieste cancellabili
+    abortControllers: new Map(), // Per gestire richieste cancellabili
+    _menuClickHandler: null // Per event delegation del menu
 };
 
 // Mappa dei nomi di file ai percorsi dei moduli
@@ -73,7 +74,6 @@ function detectCurrentPage() {
     console.warn("Tipo di pagina non identificato. Usando default:", DEFAULT_PAGE);
     return window.IrrigationApp.currentPage || DEFAULT_PAGE;
 }
-
 
 // ==================== GESTIONE MODULI ====================
 function loadModule(modulePath) {
@@ -191,7 +191,7 @@ async function initializeApp() {
         console.error("ERRORE CRITICO: Impossibile caricare i moduli core dopo " + maxRetries + " tentativi");
         showCriticalError("Errore critico di sistema. Ricaricare la pagina.");
         
-        // Mostra comunque la dashboard tradizionale se possibile
+        // Mostra comunque un messaggio di errore
         const contentElement = document.getElementById('content');
         if (contentElement) {
             contentElement.innerHTML = `
@@ -290,15 +290,20 @@ async function initializeApp() {
         }
     }
     
-    // Avvia polling dello stato
-    const startPollingFn = (statusModule && statusModule.startProgramStatusPolling) 
-        ? statusModule.startProgramStatusPolling 
-        : startProgramStatusPolling;
-    
+    // Avvia polling dello stato con gestione errori
     try {
-        startPollingFn();
+        if (statusModule && typeof statusModule.startProgramStatusPolling === 'function') {
+            statusModule.startProgramStatusPolling();
+            console.log("Polling stato programma avviato con successo");
+        } else if (typeof startProgramStatusPolling === 'function') {
+            startProgramStatusPolling();
+            console.log("Polling stato programma avviato con fallback");
+        } else {
+            console.warn("Funzione di polling stato non disponibile");
+        }
     } catch (error) {
-        console.warn("Errore nell'avvio del polling dello stato:", error);
+        console.error("Errore nell'avvio del polling dello stato:", error);
+        // Non bloccare l'inizializzazione dell'app
     }
     
     setupNavigationListeners();
@@ -342,7 +347,7 @@ async function emergencyLoadPage(pageName) {
     }
 }
 
-// Aggiungi questa nuova funzione per determinare la pagina iniziale
+// Funzione per determinare la pagina iniziale
 function getInitialPage() {
     // Prima, controlla il fragment dell'URL (#pagina)
     const hashPage = window.location.hash.substring(1);
@@ -394,11 +399,16 @@ function initializeCurrentPage(pageName) {
     }
     
     // Controlla stato programma
-    const statusModule = window.IrrigationStatus;
-    const checkStatusFn = (statusModule && statusModule.checkProgramStatus) 
-        ? statusModule.checkProgramStatus 
-        : checkProgramStatus;
-    checkStatusFn();
+    try {
+        const statusModule = window.IrrigationStatus;
+        if (statusModule && typeof statusModule.checkProgramStatus === 'function') {
+            statusModule.checkProgramStatus();
+        } else if (typeof checkProgramStatus === 'function') {
+            checkProgramStatus();
+        }
+    } catch (error) {
+        console.error("Errore nel controllo stato programma:", error);
+    }
 
     document.dispatchEvent(new CustomEvent('pageInitialized', { detail: { pageName: pageName } }));
 }
@@ -423,6 +433,11 @@ function setupNavigationListeners() {
             
             if (targetPage && router && router.loadPage) {
                 router.loadPage(targetPage);
+            } else if (targetPage) {
+                console.warn("Router non disponibile, tentativo con loadPage globale");
+                if (typeof window.loadPage === 'function') {
+                    window.loadPage(targetPage);
+                }
             }
         }
     };
@@ -432,16 +447,6 @@ function setupNavigationListeners() {
     // Stop handler globale
     document.removeEventListener('click', handleGlobalStopClick);
     document.addEventListener('click', handleGlobalStopClick);
-}
-
-function handleMenuClick(event) {
-    event.preventDefault();
-    const targetPage = event.currentTarget.getAttribute('data-page');
-    const router = window.IrrigationRouter;
-    
-    if (targetPage && router && router.loadPage) {
-        router.loadPage(targetPage);
-    }
 }
 
 function handleGlobalStopClick(e) {
@@ -489,10 +494,13 @@ function handleGlobalError(event) {
         error: event.error
     });
     
-    const ui = window.IrrigationUI;
-    const toastFn = (ui && ui.showToast) ? ui.showToast : showToast;
-    if (toastFn) {
-        toastFn('Si è verificato un errore imprevisto.', 'error');
+    // Non mostrare toast per ogni errore per evitare spam
+    if (event.message && event.message.includes('Critical')) {
+        const ui = window.IrrigationUI;
+        const toastFn = (ui && ui.showToast) ? ui.showToast : showToast;
+        if (toastFn) {
+            toastFn('Si è verificato un errore imprevisto.', 'error');
+        }
     }
 }
 
@@ -653,16 +661,16 @@ function showToast(message, type = 'info', duration = 3500) {
     toast.addEventListener('click', () => {
         clearTimeout(timerId);
         toast.classList.remove('show');
-        toast.addEventListener('transitionend', () => {
+        setTimeout(() => {
             if (container.contains(toast)) container.removeChild(toast);
-        }, { once: true });
+        }, 300);
     }, { once: true });
 }
 
 // Default implementations per compatibilità
 function checkProgramStatus() {
     const statusModule = window.IrrigationStatus;
-    if (statusModule && statusModule.checkProgramStatus) {
+    if (statusModule && typeof statusModule.checkProgramStatus === 'function') {
         statusModule.checkProgramStatus();
     } else {
         console.warn("checkProgramStatus: IrrigationStatus non disponibile.");
@@ -671,7 +679,7 @@ function checkProgramStatus() {
 
 function startProgramStatusPolling() {
     const statusModule = window.IrrigationStatus;
-    if (statusModule && statusModule.startProgramStatusPolling) {
+    if (statusModule && typeof statusModule.startProgramStatusPolling === 'function') {
         statusModule.startProgramStatusPolling();
     } else {
         console.warn("startProgramStatusPolling: IrrigationStatus non disponibile.");
@@ -785,5 +793,6 @@ window.stopAllPrograms = window.stopProgram;
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
+    // Se il DOM è già pronto, inizializza subito
     initializeApp();
 }

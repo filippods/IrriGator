@@ -12,17 +12,18 @@ window.IrrigationCore = window.IrrigationCore || {
 
 // ==================== UTILS.JS ====================
 // Polyfill per crypto.randomUUID
-if (typeof crypto === 'undefined') {
-    window.crypto = {};
-}
-
-if (!crypto.randomUUID) {
+if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
     crypto.randomUUID = function() {
-        // Fallback per browser che non supportano crypto.getRandomValues
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
+        if (typeof crypto.getRandomValues === 'function') {
+            return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+                (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+            );
+        } else {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
     };
 }
 
@@ -180,19 +181,15 @@ window.IrrigationUI = IrrigationUI;
 
 // ==================== API.JS ====================
 const IrrigationAPI = {
-    // Definisci apiCall come metodo dell'oggetto, non come async function separata
-    apiCall: async function(endpoint, method = 'GET', data = null, retryCount = 0, maxRetries = 2) {
+    async apiCall(endpoint, method = 'GET', data = null, retryCount = 0, maxRetries = 2) {
         const cacheKey = method === 'GET' ? endpoint : null;
         
         // Check cache for GET requests
         if (cacheKey && window.IrrigationCore.apiCache.has(cacheKey)) {
             const cached = window.IrrigationCore.apiCache.get(cacheKey);
-            if (cached && cached.timestamp && (Date.now() - cached.timestamp < window.IrrigationCore.API_CACHE_TTL)) {
+            if (Date.now() - cached.timestamp < window.IrrigationCore.API_CACHE_TTL) {
                 console.log(`Usando cache per ${endpoint}`);
                 return cached.data;
-            } else {
-                // Rimuovi entry scaduta
-                window.IrrigationCore.apiCache.delete(cacheKey);
             }
         }
         
@@ -211,18 +208,12 @@ const IrrigationAPI = {
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const result = await response.json();
             
-            // Cache GET requests solo se la risposta è valida
-            if (cacheKey && result !== null && result !== undefined) {
+            // Cache GET requests
+            if (cacheKey) {
                 window.IrrigationCore.apiCache.set(cacheKey, {
                     data: result,
                     timestamp: Date.now()
                 });
-                
-                // Limita dimensione cache a 50 entries
-                if (window.IrrigationCore.apiCache.size > 50) {
-                    const firstKey = window.IrrigationCore.apiCache.keys().next().value;
-                    window.IrrigationCore.apiCache.delete(firstKey);
-                }
             }
             
             return result;
@@ -241,7 +232,7 @@ const IrrigationAPI = {
         }
     },
 
-    loadUserSettings: async function() {
+    async loadUserSettings() {
         try {
             return await this.apiCall('/data/user_settings.json');
         } catch (error) {
@@ -251,7 +242,7 @@ const IrrigationAPI = {
         }
     },
 
-    loadPrograms: async function() {
+    async loadPrograms() {
         try {
             return await this.apiCall('/data/program.json');
         } catch (error) {
@@ -261,7 +252,7 @@ const IrrigationAPI = {
         }
     },
 
-    getProgramState: async function() {
+    async getProgramState() {
         try {
             return await this.apiCall('/get_program_state');
         } catch (error) {
@@ -270,7 +261,7 @@ const IrrigationAPI = {
         }
     },
 
-    startProgram: async function(programId) {
+    async startProgram(programId) {
         try {
             const result = await this.apiCall('/start_program', 'POST', { program_id: programId });
             if (result.success) {
@@ -286,7 +277,7 @@ const IrrigationAPI = {
         }
     },
 
-    stopProgram: async function() {
+    async stopProgram() {
         IrrigationUI.showToast('Arresto del programma in corso...', 'info');
         
         const stopButtons = document.querySelectorAll('.banner-stop-btn, .global-stop-btn, .stop-program-button');
@@ -338,9 +329,8 @@ const IrrigationRouter = {
         window.IrrigationApp.currentPage = pageName;
         
         // Aggiorna URL e localStorage solo se non è il caricamento iniziale
-        // per evitare di alterare l'URL quando l'utente ha già navigato direttamente a una pagina
         if (!isInitialLoad) {
-            // Aggiorna URL hash senza # iniziale per evitare il salto della pagina
+            // Aggiorna URL hash
             const pageBase = pageName.replace('.html', '');
             window.history.pushState(null, '', '#' + pageBase);
             
@@ -830,9 +820,13 @@ const IrrigationStatus = {
     startProgramStatusPolling() {
         console.log("Avvio polling stato programma");
         
+        // Assicurati di fermare polling esistente
         this.stopProgramStatusPolling();
+        
+        // Controlla immediatamente
         this.checkProgramStatus();
         
+        // Crea nuovo intervallo mantenendo il contesto
         this.programStatusInterval = setInterval(() => {
             this.checkProgramStatus();
         }, window.IrrigationCore.PROGRAM_STATUS_POLLING_INTERVAL);
@@ -857,6 +851,11 @@ const IrrigationStatus = {
         return this.lastProgramState;
     }
 };
+
+// Bind delle funzioni per mantenere il contesto
+IrrigationStatus.startProgramStatusPolling = IrrigationStatus.startProgramStatusPolling.bind(IrrigationStatus);
+IrrigationStatus.stopProgramStatusPolling = IrrigationStatus.stopProgramStatusPolling.bind(IrrigationStatus);
+IrrigationStatus.checkProgramStatus = IrrigationStatus.checkProgramStatus.bind(IrrigationStatus);
 
 window.IrrigationStatus = IrrigationStatus;
 
